@@ -1,19 +1,16 @@
 \input texinfo  @c -*-texinfo-*-
 @c %**start of header
-@setfilename mew.ja.info
 @settitle Mew (Messaging in the Emacs World)
 @c %**end of header
 
-@clear en
-@clear ja
-@set ja
-
 @ifset ja
+@setfilename mew.ja.info
 @c Mew の texinfo
 @c Copyright (C) 1996-2025 Mew developing team.
 @c M-x texinfo-format-buffer で info にしてね。
 @end ifset
 @ifset en
+@setfilename mew.info
 @c Texinfo for Mew
 @c Copyright (C) 1996-2025 Mew developing team.
 @c Try "M-x texinfo-format-buffer" or makeinfo to get the Info.
@@ -5178,10 +5175,11 @@ form for both singlepart and multipart.
 @ifset ja
 Draft モードで @samp{C-cC-m} や @samp{C-cC-c} と入力しメッセージを作成す
 ると、Mew は本文の内部表現から配送時の文字コードを決定します。バイリンガ
-ル Emacs では、7 ビットの文字コードに対し US-ASCII を選び、8 ビットの文字
+ル Emacs@*では、7 ビットの文字コードに対し US-ASCII を選び、8 ビットの文字
 コードに対し ISO-8859-1 を選択します。国際化 Emacs では、内部表現から 
 Mew が定めた規則に従って、配送時の文字コードを決定します。
 @end ifset
+@c force a line break as a workaround for a possible makeinfo bug
 @ifset en
 When you type @samp{C-cC-m} or @samp{C-cC-c} to compose a message in
 Draft mode, Mew decides the character set of the transfer based on the

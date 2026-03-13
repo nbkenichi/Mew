@@ -56,25 +56,11 @@ info: mew.info
 .PHONY: jinfo
 jinfo: mew.ja.info
 
-tmp.texi: mew.texi
-	sed -e 's/@setfilename mew.ja.info/@setfilename mew.info/' \
-	    -e 's/@set ja/@set en/' $? > $@
-	$(RM) mew.info*
+mew.info: mew.texi
+	cat $< | makeinfo -v --fill-column=72 --no-number-sections --paragraph-indent=none -c OPEN_QUOTE_SYMBOL=\` -c CLOSE_QUOTE_SYMBOL=\' -Den
 
-mew.info: tmp.texi
-	$(EMACS) -batch -q -no-site-file \
-		--eval "(set-default-coding-systems 'utf-8-unix)" \
-		-l texinfmt -f batch-texinfo-format $?
-
-tmpj.texi: mew.texi
-	sed -e 's/@setfilename mew.info/@setfilename mew.ja.info/' \
-	    -e 's/@set en/@set ja/' $? > $@
-	$(RM) mew.ja.info*
-
-mew.ja.info: tmpj.texi
-	$(EMACS) -batch -q -no-site-file \
-		--eval "(set-default-coding-systems 'utf-8-unix)" \
-		-l texinfmt -f batch-texinfo-format $?
+mew.ja.info: mew.texi kinsoku.rb
+	cat $< | ruby kinsoku.rb | makeinfo -v --fill-column=72 --no-number-sections --paragraph-indent=none -c OPEN_QUOTE_SYMBOL=\` -c CLOSE_QUOTE_SYMBOL=\' -Dja
 
 .PHONY: install install-info
 install: install-info
