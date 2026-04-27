@@ -283,7 +283,8 @@
   "Change the master password."
   (interactive)
   (setq mew-passwd-master nil)
-  (mew-passwd-read-master-passwd))
+  (mew-passwd-read-master-passwd)
+  (mew-passwd-save))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
