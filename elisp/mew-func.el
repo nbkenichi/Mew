@@ -1497,12 +1497,11 @@ by side-effect."
 ;; Wed, 26 Jul 2000 21:18:35 +0900 (JST)
 (defun mew-time-ctz-to-rfc (time)
   (let* ((system-time-locale "C")
-	 ;; A bug of Emacs 22.3 on Windows
-	 (time-zone-name (format-time-string "%Z" time))
-	 (date (format-time-string "%a, %d %b %Y %T %z" time)))
-    (if (string= time-zone-name "")
-	date
-      (concat date (format " (%s)" time-zone-name)))))
+	 (date (format-time-string "%a, %d %b %Y %T %z (%Z)" time)))
+    ;; Omit comment if %Z produces the empty string
+    (if (eq ?\( (aref date (- (length date) 2)))
+	(substring date -3)
+      date)))
 
 ;; 2000/07/12 16:22:30
 (defun mew-time-ctz-to-logtime (time)
