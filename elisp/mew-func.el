@@ -1476,12 +1476,13 @@ by side-effect."
 	  (setq year (+ year 2000)))
 	 ((< year 150)
 	  (setq year (+ year 1900))))
-	(if (or (< year 1970) (>= year 2038))
-	    ;; invalid data
-	    (mew-time-ctz-to-sortkey-invalid sec min hour day mon year)
-	  (mew-time-ctz-to-sortkey (encode-time
-				    (list sec min hour day mon year
-					  nil -1 (and tzadj tmzn))))))))
+	(condition-case nil
+	    (mew-time-ctz-to-sortkey
+	     (encode-time (list sec min hour day mon year
+				nil -1 (and tzadj tmzn))))
+	  (error
+	   ;; invalid data
+	   (mew-time-ctz-to-sortkey-invalid sec min hour day mon year))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
