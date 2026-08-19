@@ -1455,8 +1455,7 @@ by side-effect."
 
 ;; "20000726121835"
 (defun mew-time-ctz-to-sortkey (time)
-  (let ((system-time-locale "C"))
-    (format-time-string "%Y%m%d%H%M%S" time)))
+  (format-time-string "%Y%m%d%H%M%S" time))
 
 (defun mew-time-ctz-to-sortkey-invalid (sec min hour day mon year)
   (format "%04d%02d%02d%02d%02d%02d" year mon day hour min sec))
@@ -1506,13 +1505,11 @@ by side-effect."
 
 ;; 2000/07/12 16:22:30
 (defun mew-time-ctz-to-logtime (time)
-  (let ((system-time-locale "C"))
-    (format-time-string "%Y/%m/%d %H:%M:%S" time)))
+  (format-time-string "%Y/%m/%d %H:%M:%S" time))
 
 ;; 20000712.155559
 (defun mew-time-ctz-to-msgid (time)
-  (let ((system-time-locale "C"))
-    (format-time-string "%Y%m%d.%H%M%S" time)))
+  (format-time-string "%Y%m%d.%H%M%S" time))
 
 ;;
 
