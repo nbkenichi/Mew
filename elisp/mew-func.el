@@ -941,7 +941,7 @@ If case is \"default\", it is not prepended."
     (nth 1 (file-attributes file))))
 
 (defun mew-file-get-time (file)
-  (time-convert (nth 5 (file-attributes file)) 'list))
+  (nth 5 (file-attributes file)))
 
 (defun mew-file-get-size (file)
   (nth 7 (file-attributes file)))
@@ -1522,9 +1522,6 @@ by side-effect."
 ;;;
 ;;; Time
 ;;;
-
-(defun mew-current-time ()
-  (time-convert (current-time) 'list))
 
 ;; Emacs 27 introduced time-equal-p,
 ;; but Mew assumes only Emacs 26.
