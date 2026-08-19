@@ -1479,9 +1479,9 @@ by side-effect."
 	(if (or (< year 1970) (>= year 2038))
 	    ;; invalid data
 	    (mew-time-ctz-to-sortkey-invalid sec min hour day mon year)
-	  (setq sec (- sec tmzn))
-	  (if tzadj (setq sec (+ sec (car (current-time-zone)))))
-	  (mew-time-ctz-to-sortkey (encode-time sec min hour day mon year))))))
+	  (mew-time-ctz-to-sortkey (encode-time
+				    (list sec min hour day mon year
+					  nil -1 (and tzadj tmzn))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
