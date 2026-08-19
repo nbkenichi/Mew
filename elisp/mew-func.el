@@ -1536,6 +1536,14 @@ by side-effect."
 (defun mew-current-time ()
   (time-convert (current-time) 'list))
 
+;; Emacs 27 introduced time-equal-p,
+;; but Mew assumes only Emacs 26.
+(unless (fboundp 'time-equal-p)
+  (defun time-equal-p (a b)
+    "Non-nil if time values A and B are equal."
+    (not (or (time-less-p a b)
+             (time-less-p b a)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; Multibyte

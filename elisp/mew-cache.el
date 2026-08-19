@@ -27,7 +27,7 @@
 (defun mew-cinfo-equal (fld msg time size)
   (and (string= (mew-cinfo-get-fld) fld)
        (string= (mew-cinfo-get-msg) msg)
-       (equal (mew-cinfo-get-time) time)
+       (time-equal-p (mew-cinfo-get-time) time)
        (eq (mew-cinfo-get-size) size)))
 
 (defun mew-cache-dinfo-get-decode-broken (buf)

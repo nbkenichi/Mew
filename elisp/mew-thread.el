@@ -168,8 +168,9 @@ All members must have the same length."
 	(setq ofld (mew-vinfo-get-original-folder))
 	(and (equal ofld cfolder)
 	     (get-buffer ofld)
-	     (equal (mew-sinfo-get-cache-time)
-		    (progn (set-buffer ofld) (mew-sinfo-get-cache-time))))))))
+	     (time-equal-p
+	      (mew-sinfo-get-cache-time)
+	      (progn (set-buffer ofld) (mew-sinfo-get-cache-time))))))))
 
 (defun mew-summary-make-thread (&optional arg)
   "If called in Summary mode or Selection, make threads for
