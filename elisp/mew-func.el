@@ -941,7 +941,7 @@ If case is \"default\", it is not prepended."
     (nth 1 (file-attributes file))))
 
 (defun mew-file-get-time (file)
-  (time-convert (nth 5 (file-attributes file)) 'list))
+  (nth 5 (file-attributes file)))
 
 (defun mew-file-get-size (file)
   (nth 7 (file-attributes file)))
@@ -1455,8 +1455,7 @@ by side-effect."
 
 ;; "20000726121835"
 (defun mew-time-ctz-to-sortkey (time)
-  (let ((system-time-locale "C"))
-    (format-time-string "%Y%m%d%H%M%S" time)))
+  (format-time-string "%Y%m%d%H%M%S" time))
 
 (defun mew-time-ctz-to-sortkey-invalid (sec min hour day mon year)
   (format "%04d%02d%02d%02d%02d%02d" year mon day hour min sec))
@@ -1476,12 +1475,13 @@ by side-effect."
 	  (setq year (+ year 2000)))
 	 ((< year 150)
 	  (setq year (+ year 1900))))
-	(if (or (< year 1970) (>= year 2038))
-	    ;; invalid data
-	    (mew-time-ctz-to-sortkey-invalid sec min hour day mon year)
-	  (setq sec (- sec tmzn))
-	  (if tzadj (setq sec (+ sec (car (current-time-zone)))))
-	  (mew-time-ctz-to-sortkey (encode-time sec min hour day mon year))))))
+	(condition-case nil
+	    (mew-time-ctz-to-sortkey
+	     (encode-time (list sec min hour day mon year
+				nil -1 (and tzadj tmzn))))
+	  (error
+	   ;; invalid data
+	   (mew-time-ctz-to-sortkey-invalid sec min hour day mon year))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1497,45 +1497,37 @@ by side-effect."
 ;; Wed, 26 Jul 2000 21:18:35 +0900 (JST)
 (defun mew-time-ctz-to-rfc (time)
   (let* ((system-time-locale "C")
-	 ;; A bug of Emacs 22.3 on Windows
-	 (time-zone-name (format-time-string "%Z" time))
-	 (date (format-time-string "%a, %d %b %Y %T %z" time)))
-    (if (string= time-zone-name "")
-	date
-      (concat date (format " (%s)" time-zone-name)))))
+	 (date (format-time-string "%a, %d %b %Y %T %z (%Z)" time)))
+    ;; Omit comment if %Z produces the empty string
+    (if (eq ?\( (aref date (- (length date) 2)))
+	(substring date -3)
+      date)))
 
 ;; 2000/07/12 16:22:30
 (defun mew-time-ctz-to-logtime (time)
-  (let ((system-time-locale "C"))
-    (format-time-string "%Y/%m/%d %H:%M:%S" time)))
+  (format-time-string "%Y/%m/%d %H:%M:%S" time))
 
 ;; 20000712.155559
 (defun mew-time-ctz-to-msgid (time)
-  (let ((system-time-locale "C"))
-    (format-time-string "%Y%m%d.%H%M%S" time)))
+  (format-time-string "%Y%m%d.%H%M%S" time))
 
 ;;
 
 (defun mew-time-calc (new old)
-  (let ((million 1000000)
-	(sec (+ (* 65536 (- (nth 0 new) (nth 0 old)))
-		(- (nth 1 new) (nth 1 old))))
-	(usec (- (nth 2 new) (nth 2 old))))
-    (if (< usec 0)
-        (setq sec (1- sec)
-              usec (+ usec million))
-      (if (>= usec million)
-          (setq sec (1+ sec)
-                usec (- usec million))))
-    (+ sec (/ usec (float million)))))
+  (float-time (time-subtract new old)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; Time
 ;;;
 
-(defun mew-current-time ()
-  (time-convert (current-time) 'list))
+;; Emacs 27 introduced time-equal-p,
+;; but Mew assumes only Emacs 26.
+(unless (fboundp 'time-equal-p)
+  (defun time-equal-p (a b)
+    "Non-nil if time values A and B are equal."
+    (not (or (time-less-p a b)
+             (time-less-p b a)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

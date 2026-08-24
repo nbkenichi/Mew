@@ -242,7 +242,7 @@
 ;;;
 
 (defun mew-encode-id-date (_pnm msgid &optional resentp)
-  (let ((time (mew-current-time)))
+  (let ((time (current-time)))
     (cond
      (resentp
       (mew-header-delete-lines (list mew-resent-date: mew-resent-message-id:))

@@ -240,7 +240,10 @@
 	 (del-time (mew-pop-get-delete pnm))
 	 (bnm (mew-pop-get-bnm pnm))
 	 (range (mew-pop-get-range pnm))
-	 (ctime (mew-current-time))
+	 ;; Keep timestamps in (HI LO USEC PSEC) form,
+	 ;; so that the generated files can be read
+	 ;; by Mew versions predating August 2026.
+	 (ctime (time-convert nil 'list))
 	 (left 0)
 	 rtr rtrs dels num uid uidl old-uidl uid-time hlds)
     (cond

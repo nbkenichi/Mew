@@ -388,8 +388,12 @@ Binary search is used for speed reasons."
        (mew-remove-buffer buf)))))
 
 (defun mew-virtual-set-cache-time ()
-  (let* ((ctime (mew-current-time))
-	 (cache-time (list (nth 0 ctime) (nth 1 ctime))))
+  ;; Keep timestamps in (HI LO) form,
+  ;; so that files that current Mew generates
+  ;; can be read by Mew versions predating August 2026.
+  ;; This loses subsecond information.
+  (let* ((ctime (time-convert nil 'integer))
+	 (cache-time (list (ash ctime -16) (logand ctime 65535))))
     (mew-sinfo-set-cache-time cache-time)))
 
 ;;; Code:
