@@ -64,27 +64,24 @@
 	       (setq sargs (mw32script-argument-editing-function (list prog))))
 	  (cons (car sargs) (cons prog args))
 	(cons program args))))
-  (defadvice call-process
-      (before mew-w32-call-process
-	      (program &optional infile buffer display &rest args)
-	      activate)
+
+  (defun mew-w32--call-process-advice
+      (orig-fun program &optional infile buffer display &rest args)
     (let ((sargs (mew-w32-argument-editing-function program args)))
-      (setq program (car sargs)
-	    args (cdr sargs))))
-  (defadvice call-process-region
-      (before mew-w32-call-process-region
-	      (start end program &optional infile buffer display &rest args)
-	      activate)
+      (apply orig-fun (car sargs) infile buffer display (cdr sargs))))
+  (advice-add 'call-process :around #'mew-w32--call-process-advice)
+
+  (defun mew-w32--call-process-region-advice
+      (orig-fun start end program &optional infile buffer display &rest args)
     (let ((sargs (mew-w32-argument-editing-function program args)))
-      (setq program (car sargs)
-	    args (cdr sargs))))
-  (defadvice start-process
-      (before mew-w32-start-process
-	      (name buffer program &rest program-args)
-	      activate)
+      (apply orig-fun start end (car sargs) infile buffer display (cdr sargs))))
+  (advice-add 'call-process-region :around #'mew-w32--call-process-region-advice)
+
+  (defun mew-w32--start-process-advice
+      (orig-fun name buffer program &rest program-args)
     (let ((sargs (mew-w32-argument-editing-function program program-args)))
-      (setq program (car sargs)
-	    program-args (cdr sargs))))))
+      (apply orig-fun name buffer (car sargs) (cdr sargs))))
+  (advice-add 'start-process :around #'mew-w32--start-process-advice)))
 
 ;; printing
 (defun mew-w32-print-buffer ()
