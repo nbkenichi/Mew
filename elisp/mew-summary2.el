@@ -540,7 +540,7 @@ If called with `\\[universal-argument]', it stays writable."
 	   ;; for broken MTAs
 	   (if (string-match "Mon\\|Tue\\|Wed\\|Thu\\|Fri\\|Sat\\|Sun" ent)
 	       (setq date (substring ent (match-beginning 0)))))
-	 (if date (setq date (mew-time-rfc-to-sortkey date 'tzadj)))
+	 (if date (setq date (mew-time-rfc-to-sortkey date)))
 	 (unless date (setq date "19700101000000"))
 	 (setq tmp (cons (list date svr) tmp))
 	 (cond

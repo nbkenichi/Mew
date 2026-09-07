@@ -1461,7 +1461,7 @@ by side-effect."
   (format "%04d%02d%02d%02d%02d%02d" year mon day hour min sec))
 
 ;; "20000726121835"
-(defun mew-time-rfc-to-sortkey (s &optional tzadj)
+(defun mew-time-rfc-to-sortkey (s)
   (if (string-match mew-time-rfc-regex s)
       (let ((year (mew-time-rfc-year))
 	    (mon  (mew-time-mon-str-to-int (mew-time-rfc-mon)))
@@ -1476,13 +1476,9 @@ by side-effect."
 	 ((< year 150)
 	  (setq year (+ year 1900))))
 	(condition-case nil
-	    ;; tmzn is used to convert the time to GMT for sorting by
-	    ;; default. If tzadj is non-nil, this is used for path
-	    ;; traceing, not for sorting. In this case, time is adjusted
-	    ;; to the local zone.
-	    (let* ((tmzn1 (if tzadj (- tmzn (car (current-time-zone))) tmzn))
-		   (tm (encode-time (list sec min hour day mon year nil -1 tmzn1))))
-	      (mew-time-ctz-to-sortkey tm))
+	    ;; This uses local zone which ensures correct behavior
+	    ;; for both sorting and path tracing.
+	    (mew-time-ctz-to-sortkey (encode-time (list sec min hour day mon year nil -1 tmzn)))
 	  (error
 	   ;; invalid data
 	   (mew-time-ctz-to-sortkey-invalid sec min hour day mon year))))))
