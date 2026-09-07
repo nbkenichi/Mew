@@ -1476,9 +1476,13 @@ by side-effect."
 	 ((< year 150)
 	  (setq year (+ year 1900))))
 	(condition-case nil
-	    (mew-time-ctz-to-sortkey
-	     (encode-time (list sec min hour day mon year
-				nil -1 (and tzadj tmzn))))
+	    ;; tmzn is used to convert the time to GMT for sorting by
+	    ;; default. If tzadj is non-nil, this is used for path
+	    ;; traceing, not for sorting. In this case, time is adjusted
+	    ;; to the local zone.
+	    (let* ((tmzn1 (if tzadj (- tmzn (car (current-time-zone))) tmzn))
+		   (tm (encode-time (list sec min hour day mon year nil -1 tmzn1))))
+	      (mew-time-ctz-to-sortkey tm))
 	  (error
 	   ;; invalid data
 	   (mew-time-ctz-to-sortkey-invalid sec min hour day mon year))))))
