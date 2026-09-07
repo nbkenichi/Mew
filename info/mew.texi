@@ -9055,7 +9055,7 @@ asked to input the field name as follows:
 @end ifset
 
 @example
-Sort by? (default date): 
+Sort by? (date):
 @end example
 
 @ifset ja
