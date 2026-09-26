@@ -46,7 +46,10 @@
 (defvar mew-debug nil
   "'`ecode', `encode', `net', `pgp', `thread', `sort', `t' for all.")
 (defun mew-debug (category)
-  (or (eq mew-debug t) (eq mew-debug category)))
+  (or (eq mew-debug t)
+      (if (listp mew-debug)
+          (memq category mew-debug)
+        (eq mew-debug category))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
