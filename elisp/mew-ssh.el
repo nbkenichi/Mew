@@ -154,7 +154,7 @@ after ':'."
   (when (mew-debug 'net)
     (with-current-buffer (get-buffer-create mew-buffer-debug)
       (goto-char (point-max))
-      (insert (format "\n<%s>\n%s\n" label string)))))
+      (insert (format "\n<%s>\n%s\n" label (pp-to-string string))))))
 
 (defun mew-ssh-filter (process string)
   (save-excursion
