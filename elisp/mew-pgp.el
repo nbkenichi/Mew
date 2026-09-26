@@ -279,7 +279,7 @@ Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
   (when (mew-debug 'pgp)
     (with-current-buffer (get-buffer-create mew-buffer-debug)
       (goto-char (point-max))
-      (insert (format "\n<%s>\n%s\n" label string)))))
+      (insert (format "\n<%s>\n%s\n" label (pp-to-string string))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
