@@ -56,7 +56,7 @@
     (with-current-buffer (get-buffer-create mew-buffer-debug)
       (goto-char (point-max))
       (let ((start (point)))
-	(insert (format "\n<%s>\n%s\n" label string))
+	(insert (format "\n<%s>\n%s\n" label (pp-to-string string)))
 	(goto-char start)
 	(mew-crlf-to-lf))
       (goto-char (point-max)))))
