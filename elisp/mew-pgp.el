@@ -364,6 +364,7 @@ pty, so they need nothing here."
 
 (defun mew-pgp-verify-check-text ()
   ;; Used for PGP 2, 5 and 6, which have no status output.
+  (mew-pgp-debug "mew-pgp-verify-check-text" (buffer-substring-no-properties (point-min) (point-max)))
   (let (ret keyid)
     (goto-char (point-min))
     (if (not (re-search-forward (mew-pgp-get mew-pgp-msg-signature) nil t))
@@ -467,6 +468,7 @@ The key id comes first, then the user id."
 Return nil when the output says nothing about a signature, which is
 what happens for a message which is encrypted but not signed."
   (let (args)
+    (mew-pgp-debug "mew-pgp-verify-check-status" (buffer-substring-no-properties (point-min) (point-max)))
     (cond
      ((setq args (mew-pgp-status-get "BADSIG"))
       (concat "BAD PGP sign " (mew-pgp-status-uid args)))
@@ -504,6 +506,7 @@ what happens for a message which is encrypted but not signed."
       ;; Only the standard output, which carries the status lines, is
       ;; kept.  What GnuPG writes for people is dropped so that it
       ;; cannot be taken for a status line.
+      (mew-pgp-debug "mew-pgp-verify" (list pgpv voptions files))
       (apply 'mew-call-process-lang pgpv nil (list t nil) nil
 	     (append voptions files))
       (setq ret (mew-pgp-verify-check)))
@@ -517,6 +520,7 @@ what happens for a message which is encrypted but not signed."
 
 (defun mew-pgp-encrypt-check-status ()
   "Create error message from GnuPG encryption status output."
+  (mew-pgp-debug "mew-pgp-encrypt-check-status" (buffer-substring-no-properties (point-min) (point-max)))
   (let ((inv-recp (mew-split (mew-pgp-status-get "INV_RECP") ?\s))
 	reason recipient)
     (when inv-recp
@@ -538,6 +542,7 @@ what happens for a message which is encrypted but not signed."
        ": " recipient))))
 
 (defun mew-pgp-encrypt-check-text ()
+  (mew-pgp-debug "mew-pgp-encrypt-check-text" (buffer-substring-no-properties (point-min) (point-max)))
   (let (ret) ;; this should be nil
     (goto-char (point-min))
     (if (re-search-forward (mew-pgp-get mew-pgp-msg-no-validkey) nil t)
@@ -584,6 +589,7 @@ what happens for a message which is encrypted but not signed."
        decrypters)
       (setq args (append eoptions decs (list ooption file3 file1))))
     (with-temp-buffer
+      (mew-pgp-debug "mew-pgp-encrypt" (list pgpe args))
       (apply 'mew-call-process-lang pgpe nil (list t nil) nil args)
       (setq check (mew-pgp-encrypt-check)))
     (message "PGP encrypting...done")
@@ -608,6 +614,7 @@ what happens for a message which is encrypted but not signed."
 	(pgpd (mew-pgp-get mew-prog-pgpd))
 	file3 process verify)
     (setq file3 (mew-make-temp-name))
+    (mew-pgp-debug "mew-pgp-decrypt" (list pgpd doptions ooption file3 file2))
     (setq process
 	  (apply 'mew-start-process-lang
 		 "PGP decrypt"
@@ -619,6 +626,7 @@ what happens for a message which is encrypted but not signed."
     (set-process-sentinel process 'mew-pgp-process-sentinel)
     (mew-rendezvous mew-pgp-running)
     (message "PGP decrypting...done")
+    (mew-pgp-debug "mew-pgp-decrypt-result" mew-pgp-string)
     (if (file-exists-p file3)
 	(progn
 	  (with-temp-buffer
@@ -639,6 +647,7 @@ what happens for a message which is encrypted but not signed."
 
 (defun mew-pgp-sign-check-status ()
   "Create error message from GnuPG signing status output."
+  (mew-pgp-debug "mew-pgp-sign-check-status" (buffer-substring-no-properties (point-min) (point-max)))
   (let ((inv-sgnr (mew-split (mew-pgp-status-get "INV_SGNR") ?\s))
 	reason signer)
     (when inv-sgnr
@@ -689,6 +698,7 @@ what happens for a message which is encrypted but not signed."
 	file2 process)
     (setq file2 (concat (mew-make-temp-name) mew-pgp-ascii-suffix))
     ;; not perfectly unique but OK
+    (mew-pgp-debug "mew-pgp-sign" (list pgps soptions loption mew-inherit-encode-pgp-signer ooption file2 file1))
     (setq process
 	  (apply 'mew-start-process-lang
 		 "PGP sign"
@@ -700,6 +710,7 @@ what happens for a message which is encrypted but not signed."
     (set-process-sentinel process 'mew-pgp-process-sentinel)
     (mew-rendezvous mew-pgp-running)
     (message "PGP signing...done")
+    (mew-pgp-debug "mew-pgp-sign-result" mew-pgp-string)
     (unless (file-exists-p file2) ;; for unpredictable error
       (mew-passwd-set-passwd (mew-pgp-passtag) nil)
       ;; Say something.  Handing back a file which is not there leaves
@@ -714,6 +725,7 @@ what happens for a message which is encrypted but not signed."
 	(if status (setq mew-pgp-sign-msg status)))
       (unless mew-pgp-sign-msg
 	(setq mew-pgp-sign-msg mew-pgp-result-other)))
+    (mew-pgp-debug "mew-pgp-sign-return" (list file2 nil (mew-pgp-get-micalg) mew-pgp-sign-msg))
     (list file2 nil (mew-pgp-get-micalg) mew-pgp-sign-msg))) ;; return
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1224,12 +1236,14 @@ what happens for a message which is encrypted but not signed."
 			 "Who's key? (%s): " (mew-get-my-address))))
 	(if (string-match "^[^<].*@" user) (setq user (concat "<" user ">")))
 	(with-temp-buffer
+	  (mew-pgp-debug "mew-attach-pgp-public-key" (list (mew-pgp-get mew-prog-pgpk) (mew-pgp-get mew-prog-pgpk-ext-arg) user))
 	  (apply 'mew-call-process-lang
 		 (mew-pgp-get mew-prog-pgpk)
 		 nil t nil
 		 (append
 		  (mew-pgp-get mew-prog-pgpk-ext-arg)
 		  (list user)))
+	  (mew-pgp-debug "mew-attach-pgp-public-key-result" (buffer-substring-no-properties (point-min) (point-max)))
 	  (goto-char (point-min))
 	  (if (search-forward (mew-pgp-get mew-pgp-msg-no-export-key) nil t)
 	      (setq error t)
@@ -1283,12 +1297,14 @@ public keyring."
 	(set-buffer (mew-buffer-message))
 	(mew-elet
 	 (message "Adding PGP keys...")
+	 (mew-pgp-debug "mew-mime-pgp-keys-ext" (list (mew-pgp-get mew-prog-pgpk) (mew-pgp-get mew-prog-pgpk-add-arg) mew-pgp-tmp-file))
 	 (apply 'mew-call-process-lang
 		(mew-pgp-get mew-prog-pgpk)
 		nil t nil
 		(append (mew-pgp-get mew-prog-pgpk-add-arg)
 			(list mew-pgp-tmp-file)))
 	 (message "Adding PGP keys...done")
+	 (mew-pgp-debug "mew-mime-pgp-keys-ext-result" (buffer-substring-no-properties (point-min) (point-max)))
 	 (insert "\n\n"
 		 "**************** IMPORTANT NOTE ****************\n"
 		 "When Mew adds PGP keys onto your public keyring,\n"
