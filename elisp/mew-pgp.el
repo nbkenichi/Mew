@@ -17,15 +17,16 @@
 
 (defvar mew-pgp-ver nil
   "Automatically set 0 if PGP version is 2.
-Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
+Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2. Set 5 if Sequoia PGP.")
 
 (defconst mew-pgp-ver2  0)
 (defconst mew-pgp-ver5  1)
 (defconst mew-pgp-ver6  2)
 (defconst mew-pgp-verg  3)
 (defconst mew-pgp-verg2 4)
-(defconst mew-pgp-list '("PGPv2" "PGPv5" "PGPv6" "GNUPG" "GNUPG2"))
-(defconst mew-pgp-keys '(pgpv2 pgpv5 pgpv6 gnupg gnupg2)) ;; use symbols, cases are string
+(defconst mew-pgp-versq 5)
+(defconst mew-pgp-list '("PGPv2" "PGPv5" "PGPv6" "GNUPG" "GNUPG2" "SQ"))
+(defconst mew-pgp-keys '(pgpv2 pgpv5 pgpv6 gnupg gnupg2 sq)) ;; use symbols, cases are string
 
 ;; mew-prog-pgp is used only for version check
 (defvar mew-prog-pgp2  "pgp") ;; "pgp263i", PGP selection
@@ -37,98 +38,111 @@ Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
 (defvar mew-prog-pgp6  "pgp")  ;; "pgp651i", PGP selection
 (defvar mew-prog-gpg   "gpg")  ;; PGP selection
 (defvar mew-prog-gpg2  "gpg")  ;; PGP selection
+(defvar mew-prog-sq    "sq")  ;; PGP selection
 
 (defvar mew-prog-pgpe
-  `(,mew-prog-pgp2 ,mew-prog-pgp5e ,mew-prog-pgp6 ,mew-prog-gpg ,mew-prog-gpg2))
+  `(,mew-prog-pgp2 ,mew-prog-pgp5e ,mew-prog-pgp6 ,mew-prog-gpg ,mew-prog-gpg2 ,mew-prog-sq))
 (defvar mew-prog-pgps
-  `(,mew-prog-pgp2 ,mew-prog-pgp5s ,mew-prog-pgp6 ,mew-prog-gpg ,mew-prog-gpg2))
+  `(,mew-prog-pgp2 ,mew-prog-pgp5s ,mew-prog-pgp6 ,mew-prog-gpg ,mew-prog-gpg2 ,mew-prog-sq))
 (defvar mew-prog-pgpv
-  `(,mew-prog-pgp2 ,mew-prog-pgp5v ,mew-prog-pgp6 ,mew-prog-gpg ,mew-prog-gpg2))
+  `(,mew-prog-pgp2 ,mew-prog-pgp5v ,mew-prog-pgp6 ,mew-prog-gpg ,mew-prog-gpg2 ,mew-prog-sq))
 (defvar mew-prog-pgpd
-  `(,mew-prog-pgp2 ,mew-prog-pgp5v ,mew-prog-pgp6 ,mew-prog-gpg ,mew-prog-gpg2))
+  `(,mew-prog-pgp2 ,mew-prog-pgp5v ,mew-prog-pgp6 ,mew-prog-gpg ,mew-prog-gpg2 ,mew-prog-sq))
 (defvar mew-prog-pgpk
-  `(,mew-prog-pgp2 ,mew-prog-pgp5k ,mew-prog-pgp6 ,mew-prog-gpg ,mew-prog-gpg2))
+  `(,mew-prog-pgp2 ,mew-prog-pgp5k ,mew-prog-pgp6 ,mew-prog-gpg ,mew-prog-gpg2 ,mew-prog-sq))
 
 (defconst mew-prog-pgpe-arg
   '(("-ea" "+language=en" "+batchmode=on" "+armorlines=0")
     ("-a" "+language=en" "+batchmode=on" "+armorlines=0")
     ("-ea" "+language=en" "+batchmode=on" "+armorlines=0")
     ("--status-fd" "1" "--encrypt" "--armor" "--batch")
-    ("--status-fd" "1" "--encrypt" "--armor" "--batch")))
+    ("--status-fd" "1" "--encrypt" "--armor" "--batch")
+    ("--batch" "encrypt" "--without-signature")))
 
 (defconst mew-prog-pgpd-arg
   '(("+language=en" "+batchmode=off")
     ("+language=en" "+batchmode=off")
     ("+language=en" "+batchmode=off")
     ("--decrypt" "--status-fd" "1")
-    ("--decrypt" "--status-fd" "1")))
+    ("--decrypt" "--status-fd" "1")
+    ("decrypt")))
 
 (defvar mew-prog-pgps-arg ;; local binding
   '(("-sba" "+language=en" "+batchmode=off")
     ("-ba" "+language=en" "+batchmode=off")
     ("-sba" "+language=en" "+batchmode=off")
     ("--detach-sign" "--armor" "--status-fd" "1")
-    ("--detach-sign" "--armor" "--status-fd" "1" "--command-fd" "0" "--no-tty" "--yes")))
+    ("--detach-sign" "--armor" "--status-fd" "1" "--command-fd" "0" "--no-tty" "--yes")
+    ("sign")))
 
 (defconst mew-prog-pgpv-arg
   '(("+batchmode=on" "+language=en")
     ("+batchmode=on" "+language=en" "+force=on")
     ("+batchmode=on" "+language=en")
     ("--verify" "--status-fd" "1")   ;; --batch removed to process all signatures
-    ("--verify" "--status-fd" "1"))) ;; cf. https://dev.gnupg.org/T7261.html
+    ("--verify" "--status-fd" "1")   ;; cf. https://dev.gnupg.org/T7261.html
+    ("--batch" "verify" "--signature-file")))
 
 (defconst mew-prog-old-pgpv-arg
   '(("+batchmode=on" "+language=en")
     ("+batchmode=on" "+language=en" "+force=on")
     ("+batchmode=on" "+language=en")
     ("--decrypt" "--batch")   ;; --verify does not extract original data
-    ("--decrypt" "--batch")))
+    ("--decrypt" "--batch")
+    ("--batch" "verify" "--signature-file"))) ;; not tested for sq
 
-(defconst mew-prog-pgp-arg-output  '("-o" "-o" "-o" "--output" "--output"))
-(defconst mew-prog-pgp-arg-input   '(nil  "-o" nil  nil nil))
-(defconst mew-prog-pgp-arg-luserid '("-u" "-u" "-u" "--local-user" "--local-user"))
-(defconst mew-prog-pgp-arg-ruserid '(nil  "-r" nil  "--remote-user" "--remote-user"))
+(defconst mew-prog-pgp-arg-output  '("-o" "-o" "-o" "--output" "--output" "--output")) ;; for encrypt, decrypt, verify
+(defconst mew-prog-pgps-arg-output '("-o" "-o" "-o" "--output" "--output" "--signature-file")) ;; for sign
+(defconst mew-prog-pgp-arg-input   '(nil  "-o" nil  nil nil nil))
+(defconst mew-prog-pgp-arg-luserid '("-u" "-u" "-u" "--local-user" "--local-user" "--signer-email"))
+(defconst mew-prog-pgp-arg-ruserid '(nil  "-r" nil  "--remote-user" "--remote-user" "--for-email"))
 
 (defconst mew-prog-pgpk-add-arg
   '(("-ka" "+batchmode=on")
     ("-a" "+batchmode=on")
     ("-ka" "+batchmode=on")
     ("--import" "--batch")
-    ("--import" "--batch")))
+    ("--import" "--batch")
+    ("cert" "import")))
 
 (defconst mew-prog-pgpk-ext-arg
-  '(("-kxfa") ("-xa") ("+force" "-kxfa") ("--export" "--armor" "--batch") ("--export" "--armor" "--batch")))
+  '(("-kxfa") ("-xa") ("+force" "-kxfa") ("--export" "--armor" "--batch") ("--export" "--armor" "--batch")
+    ("cert" "export" "--cert-email")))
 
 (defconst mew-pgp-msg-signature
   '("\n\\(.*\\) signature from user \\(.*\\)\\."
     "\n\\(.*\\) signature made"
     "\\([a-zA-Z0-9]*\\) signature from user \\(.*\\)\\."
     " \\(.*\\) signature from \"\\(.*\\)\""
-    " \\(.*\\) signature from \"\\(.*\\)\""))
+    " \\(.*\\) signature from \"\\(.*\\)\""
+    " \\(.*\\) signature from \"\\(.*\\)\"")) ;; not used by sq
 
 (defconst mew-pgp-msg-key-id
   '("Key ID \\([a-zA-Z0-9]+\\) not found"
     ": 0x\\([a-zA-Z0-9]+\\)"
     ": 0x\\([a-zA-Z0-9]+\\)"
     "key ID \\([a-zA-Z0-9]+\\)"
-    "key ID \\([a-zA-Z0-9]+\\)"))
+    "key ID \\([a-zA-Z0-9]+\\)"
+    "\\([A-Z0-9]\\{8,40\\}\\)")) ;; not used by sq
 
 (defconst mew-pgp-msg-bad-pass
   '("No passphrase"
     "Cannot unlock private key\\|It can only be decrypted"
     "Bad pass phrase"
     "bad passphrase"
-    "bad passphrase"))
+    "bad passphrase"
+    "Skipping")) ;; Blank password makes sq abort
 
 (defconst mew-pgp-msg-enter
-  '("Enter" "Enter" "Enter" "xxx" "xxx"))
+  '("Enter" "Enter" "Enter" "xxx" "xxx" "xxx"))
 
 (defconst mew-pgp-msg-overwrite
   '("Overwrite (y/N)\\? "
     "Overwrite (y/N)\\? "
     "Overwrite (y/N)\\? "
     "Overwrite (y/N)\\? "
-    "Overwrite (y/N)\\? "))
+    "Overwrite (y/N)\\? "
+    "Overwrite (y/N)\\? ")) ;; not tested for sq
 
 (defconst mew-pgp-msg-enter-pass
   '("Enter pass phrase: "
@@ -137,53 +151,67 @@ Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
     "Enter passphrase: "
     ;; GnuPG 2 asks over the command channel and says so on the status
     ;; channel.  It never prints the prompt itself.
-    "\\[GNUPG:\\] GET_HIDDEN passphrase\\.enter\\|Enter passphrase: "))
+    "\\[GNUPG:\\] GET_HIDDEN passphrase\\.enter\\|Enter passphrase: "
+    "enter the password "))
 
 (defconst mew-pgp-msg-reenter-pass
   '("Enter pass phrase: "
     "Enter pass phrase: "
     "Enter pass phrase: "
     "Enter passphrase: "
-    "Enter passphrase: "))
+    "Enter passphrase: "
+    "enter the password "))
 
 (defconst mew-pgp-msg-no-enckey
   '("Key matching"
     "No encryption keys"
     "public key matching"
     "public key not found"
-    "No public key"))
+    "No public key"
+    "Failed to resolve"))
 
+;;    "\\(No certificates matched\\|Failed to resolve\\)"))
 (defconst mew-pgp-msg-no-validkey
   '("DUMMY"
     "^WARNING:[ -9;-~\n]+belongs? to:"
     "^WARNING:[ -9;-~\n]+belongs? to:"
     "There is no assurance this key belongs to the named user"
-    "There is no assurance this key belongs to the named user"))
+    "There is no assurance this key belongs to the named user"
+    "^ *\\(.*\\(current policy\\|impersonation\\|cannot be authenticated at the required level\\).*\\)$"))
+;; SHA1 -> current policy
+;; no trust -> impersonation
+;; encrypt with expired key -> cannot be authenticated at the required level
 
 (defconst mew-pgp-msg-pubkey-expired
   '("xxx"
     "xxx"
     "xxx"
     "encryption failed: unusable public key"
-    "encryption failed: Unusable public key"))
+    "encryption failed: Unusable public key"
+    "is not live")) ;; 
+;; verify with expired key -> is not live
+
 
 (defconst mew-pgp-msg-no-vrfkey
-  '("Key matching" "unknown keyid" "key does not meet" "public key not found" "No public key"))
+  '("Key matching" "unknown keyid" "key does not meet" "public key not found" "No public key"
+    "^ *\\(.*\\(missing certificate\\|.*\n+.*live\\).*\\)$"))
 
 (defconst mew-pgp-msg-no-keyring
-  '("Keyring file" "Keyring file" "NO MESSAGE" "public key not found" "No public key"))
+  '("Keyring file" "Keyring file" "NO MESSAGE" "public key not found" "No public key" "xxx"))
 
 (defconst mew-pgp-msg-no-seckey-or-secring
   '("You do not have the secret key"
     "Cannot find a private key"
     "Signature error\\|You do not have the secret key"
     "failed: secret key not available"
-    "failed: secret key not available"))
+    "failed: secret key not available"
+    "\\(No key to decrypt message\\|AEAD Encrypted Data Packet\\)"))
 
 (defconst mew-pgp-msg-unsupported
   '("Unsupported packet format" ;; including algorithms and packets
     "Unsupported packet format\\|None of the signatures were understood"
     "Unsupported packet format" ;; including algorithms and packets
+    "xxx"
     "xxx"
     "xxx"))
 
@@ -192,14 +220,16 @@ Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
     "xxx"
     "xxx"
     "is not cross-certified"
-    "is not cross-certified"))
+    "is not cross-certified"
+    "xxx"))
 
 (defconst mew-pgp-verify-addr
   '(".* \\(signature from user\\) "
     "\\(   \\)"
     ".* \\(signature from user\\) "
     "gpg: .* \\(from\\|aka\\) "
-    "gpg: .* \\(from\\|aka\\) "))
+    "gpg: .* \\(from\\|aka\\) "
+    "gpg: .* \\(from\\|aka\\) ")) ;; not tested for sq
 
 ;; 2: ASCII armor corrupted
 ;; 3:
@@ -208,9 +238,9 @@ Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
 ;; 2: ERROR: or Error:
 
 (defconst mew-pgp-msg-no-export-key
-  '("Key not found" "No keys" "Key not found" "nothing exported" "nothing exported"))
+  '("Key not found" "No keys" "Key not found" "nothing exported" "nothing exported" "Failed to resolve"))
 
-(defvar mew-pgp-micalg '("pgp-md5" "pgp-sha1" "pgp-sha1" "pgp-sha1" "pgp-sha1"))
+(defvar mew-pgp-micalg '("pgp-md5" "pgp-sha1" "pgp-sha1" "pgp-sha1" "pgp-sha1" "pgp-sha1"))
 
 (defvar mew-pgp-hash-alist
   '(("1"  . "pgp-md5")
@@ -223,6 +253,13 @@ Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
     ("9"  . "pgp-sha384")
     ("10" . "pgp-sha512")))
 
+(defvar mew-pgp-sq-hash-alist
+  '(("MD5"      . "pgp-md5")
+    ("SHA1"   . "pgp-sha1")
+    ("RipeMD" . "pgp-ripemd160")
+    ("SHA256" . "pgp-sha256")
+    ("SHA384" . "pgp-sha384")
+    ("SHA512" . "pgp-sha512")))
 ;;
 ;;
 
@@ -256,7 +293,7 @@ Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
 (defvar mew-pgp-result-seckey   "No your secret key")
 (defvar mew-pgp-result-seckey-expired "Your secret key is expired")
 (defvar mew-pgp-result-seckey-or-secring
-  "No secret keyring or no your secret key")
+  "No secret keyring or no your secret key / AEAD Encrypted Data Packet")
 (defvar mew-pgp-result-nousable "No usable public key")
 (defvar mew-pgp-result-seckey-nousable "No usable secret key")
 (defvar mew-pgp-result-other    "PGP failed for some reasons")
@@ -306,7 +343,10 @@ Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
 	      (goto-char (point-min))
 	      (if (search-forward "Pretty Good Privacy(tm) Version 6" nil t)
 		  (setq mew-pgp-ver mew-pgp-ver6)
-		(setq mew-pgp-ver nil))))))))
+		(goto-char (point-min))
+		(if (search-forward "sq" nil t)
+                    (setq mew-pgp-ver mew-pgp-versq)
+		  (setq mew-pgp-ver nil)))))))))
    (t (setq mew-pgp-ver nil))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -320,7 +360,7 @@ Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
   (setq mew-prog-pgp
 	(completing-read
 	 "PGP name: "
-	 (mapcar 'list (list mew-prog-pgp2 mew-prog-pgp5 mew-prog-gpg mew-prog-gpg2))
+	 (mapcar 'list (list mew-prog-pgp2 mew-prog-pgp5 mew-prog-gpg mew-prog-gpg2 mew-prog-sq))
 	 nil t))
   (mew-pgp-setup))
 
@@ -361,6 +401,24 @@ pty, so they need nothing here."
 ;;;
 ;;; PGP verifying
 ;;;
+
+(defun mew-pgp-verify-check-text-sq ()
+  (let ((s (buffer-substring-no-properties (point-min) (point-max)))
+	(buf '())
+	ret)
+    (mew-pgp-debug "mew-pgp-verify-check-text-sq" s)
+    (if (string-match (mew-pgp-get mew-pgp-msg-no-validkey) s)
+	(push (mew-match-string 1 s) buf))
+    (if (string-match (mew-pgp-get mew-pgp-msg-no-vrfkey) s)
+	(push (replace-regexp-in-string "\n" "" (mew-match-string 1 s)) buf))
+    (if (string-match "^ *\\(.*Error verifying.*\\)$" s) ;; manipulated message
+	(push (concat "BAD PGP Sign:" (mew-match-string 1 s)) buf));; for highlight
+    (if (string-match "^ *\\(.*[0-9]+ of [0-9]+.*\\)$" s) ;; success
+	(push (mew-match-string 1 s) buf))
+    (if buf
+	(setq ret (mew-join ";" (nreverse buf))))
+    (mew-pgp-debug "mew-pgp-verify-check-text-return" ret)
+    ret))
 
 (defun mew-pgp-verify-check-text ()
   ;; Used for PGP 2, 5 and 6, which have no status output.
@@ -488,10 +546,14 @@ what happens for a message which is encrypted but not signed."
       mew-pgp-result-other)
      (t nil))))
 
+(defun mew-pgp-sq-p ()
+  (memq mew-pgp-ver (list mew-pgp-versq)))
+
 (defun mew-pgp-verify-check ()
-  (if (mew-pgp-gnupg-p)
-      (mew-pgp-verify-check-status)
-    (mew-pgp-verify-check-text)))
+  (cond
+   ((mew-pgp-gnupg-p) (mew-pgp-verify-check-status))
+   ((mew-pgp-sq-p) (mew-pgp-verify-check-text-sq))
+   (t (mew-pgp-verify-check-text-sq))))
 
 (defun mew-pgp-verify (file1 file2)
   (message "PGP verifying...")
@@ -507,9 +569,13 @@ what happens for a message which is encrypted but not signed."
       ;; kept.  What GnuPG writes for people is dropped so that it
       ;; cannot be taken for a status line.
       (mew-pgp-debug "mew-pgp-verify" (list pgpv voptions files))
-      (apply 'mew-call-process-lang pgpv nil (list t nil) nil
-	     (append voptions files))
+      (if (mew-pgp-sq-p)
+	  (apply 'mew-call-process-lang pgpv nil t nil
+		 (append voptions files))
+	(apply 'mew-call-process-lang pgpv nil (list t nil) nil
+	       (append voptions files)))
       (setq ret (mew-pgp-verify-check)))
+    (mew-pgp-debug "mew-pgp-verify-return" ret)
     (message "PGP verifying...done")
     ret))
 
@@ -578,10 +644,15 @@ what happens for a message which is encrypted but not signed."
     (if (and mew-encrypt-to-myself
 	     (not (member mew-inherit-encode-pgp-signer decrypters)))
 	(setq decrypters (cons mew-inherit-encode-pgp-signer decrypters)))
-    (setq decrypters
-	  (mapcar (lambda (x)
-		    (if (string-match "^[^<].*@" x) (concat "<" x ">") x))
-		  decrypters))
+    (if (mew-pgp-sq-p)
+	(setq decrypters
+	      (mapcar (lambda (x) ;; sq needs address without angle brackets
+			(if (string-match "^[^<].*@" x) (concat "" x "") x))
+		      decrypters))
+      (setq decrypters
+	    (mapcar (lambda (x)
+		      (if (string-match "^[^<].*@" x) (concat "<" x ">") x))
+		    decrypters)))
     (if (not roption)
 	(setq args (append (list ooption file3 file1) eoptions decrypters))
       (mapc
@@ -590,7 +661,9 @@ what happens for a message which is encrypted but not signed."
       (setq args (append eoptions decs (list ooption file3 file1))))
     (with-temp-buffer
       (mew-pgp-debug "mew-pgp-encrypt" (list pgpe args))
-      (apply 'mew-call-process-lang pgpe nil (list t nil) nil args)
+      (if (mew-pgp-sq-p)
+	  (apply 'mew-call-process-lang pgpe nil t nil args)
+	(apply 'mew-call-process-lang pgpe nil (list t nil) nil args))
       (setq check (mew-pgp-encrypt-check)))
     (message "PGP encrypting...done")
     (list file2 mew-7bit file3 mew-7bit check))) ;; both ctes are 7bit
@@ -631,7 +704,7 @@ what happens for a message which is encrypted but not signed."
 	(progn
 	  (with-temp-buffer
 	    (insert mew-pgp-string)
-	    (setq verify (mew-pgp-verify-check)))
+	    (setq verify (mew-pgp-verify-check))) ;; should be decrypt-check ???
 	  (when verify
 	    (setq mew-pgp-decrypt-msg (concat mew-pgp-decrypt-msg "\n\t" verify))))
       ;; unpredictable error
@@ -672,6 +745,15 @@ what happens for a message which is encrypted but not signed."
       (replace-match "" nil t)
       (forward-line))))
 
+(defun mew-pgp-get-micalg-sq (file)
+  (let ((micalg (mew-pgp-get mew-pgp-micalg))
+	cmd out alg)
+    (setq cmd (format "sq packet dump %s" (shell-quote-argument file)))
+    (setq out (shell-command-to-string cmd))
+    (setq alg (when (string-match "Hash algo: \\([A-Za-z0-9]+\\)" out)
+                (match-string 1 out)))
+    (or (cdr (assoc alg mew-pgp-sq-hash-alist)) micalg)))
+
 (defun mew-pgp-get-micalg ()
   (let ((micalg (mew-pgp-get mew-pgp-micalg)) alg)
     (if (and (/= mew-pgp-ver mew-pgp-verg)
@@ -692,10 +774,10 @@ what happens for a message which is encrypted but not signed."
   (setq mew-pgp-failure nil)
   (let ((process-connection-type mew-connection-type2)
 	(loption (mew-pgp-get mew-prog-pgp-arg-luserid))
-	(ooption (mew-pgp-get mew-prog-pgp-arg-output))
+	(ooption (mew-pgp-get mew-prog-pgps-arg-output))
 	(soptions (mew-pgp-loopback-options (mew-pgp-get mew-prog-pgps-arg)))
 	(pgps (mew-pgp-get mew-prog-pgps))
-	file2 process)
+	file2 process micalg)
     (setq file2 (concat (mew-make-temp-name) mew-pgp-ascii-suffix))
     ;; not perfectly unique but OK
     (mew-pgp-debug "mew-pgp-sign" (list pgps soptions loption mew-inherit-encode-pgp-signer ooption file2 file1))
@@ -725,8 +807,11 @@ what happens for a message which is encrypted but not signed."
 	(if status (setq mew-pgp-sign-msg status)))
       (unless mew-pgp-sign-msg
 	(setq mew-pgp-sign-msg mew-pgp-result-other)))
-    (mew-pgp-debug "mew-pgp-sign-return" (list file2 nil (mew-pgp-get-micalg) mew-pgp-sign-msg))
-    (list file2 nil (mew-pgp-get-micalg) mew-pgp-sign-msg))) ;; return
+    (if (mew-pgp-sq-p)
+	(setq micalg (mew-pgp-get-micalg-sq file2))
+      (setq micalg (mew-pgp-get-micalg)))
+    (mew-pgp-debug "mew-pgp-sign-return" (list file2 nil micalg mew-pgp-sign-msg))
+    (list file2 nil micalg mew-pgp-sign-msg))) ;; return
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -799,6 +884,7 @@ what happens for a message which is encrypted but not signed."
 
      ;; pass phrase for sign or decrypt
      ((string-match (mew-pgp-get mew-pgp-msg-enter-pass) string)
+      (mew-pgp-debug "PGP filter1" "enter-pass")
       (process-send-string process (format "%s\n" (mew-pgp-passphrase)))
       (set-process-filter process 'mew-pgp-process-filter2))
 
@@ -821,6 +907,7 @@ what happens for a message which is encrypted but not signed."
     (cond
      ;; re-enter pass phrase
      ((string-match (mew-pgp-get mew-pgp-msg-reenter-pass) string)
+      (mew-pgp-debug "PGP filter2" "reenter-pass")
       (setq mew-pgp-string nil)
       (mew-passwd-set-passwd (mew-pgp-passtag) nil) ;; cancel anyway
       (process-send-string process (format "%s\n" (mew-pgp-passphrase 'again)))
@@ -828,6 +915,7 @@ what happens for a message which is encrypted but not signed."
 
      ;; pass phrases were wrong three times
      ((string-match (mew-pgp-get mew-pgp-msg-bad-pass) string)
+      (mew-pgp-debug "PGP filter2" "bad-pass")
       (setq mew-pgp-failure mew-pgp-err-pass)
       (mew-passwd-set-passwd (mew-pgp-passtag) nil) ;; cancel anyway
       (set-process-filter process 'mew-pgp-process-filter3))
@@ -1059,10 +1147,15 @@ what happens for a message which is encrypted but not signed."
     (if (and mew-encrypt-to-myself
 	     (not (member mew-inherit-encode-pgp-signer decrypters)))
 	(setq decrypters (cons mew-inherit-encode-pgp-signer decrypters)))
-    (setq decrypters
-	  (mapcar (lambda (x)
-		    (if (string-match "^[^<].*@" x) (concat "<" x ">") x))
-		  decrypters))
+    (if (mew-pgp-sq-p)
+	(setq decrypters
+	      (mapcar (lambda (x) ;; sq needs address without angle brackets
+			(if (string-match "^[^<].*@" x) (concat "" x "") x))
+		      decrypters))
+      (setq decrypters
+	    (mapcar (lambda (x)
+		      (if (string-match "^[^<].*@" x) (concat "<" x ">") x))
+		    decrypters)))
     (setq file2 (mew-make-temp-name))
     (setq args (list loption mew-inherit-encode-pgp-signer ooption file2 file1))
     (if (not roption)
@@ -1234,7 +1327,8 @@ what happens for a message which is encrypted but not signed."
 	(setq file (file-name-nondirectory filepath))
 	(setq user (car (mew-input-address
 			 "Who's key? (%s): " (mew-get-my-address))))
-	(if (string-match "^[^<].*@" user) (setq user (concat "<" user ">")))
+	(unless (mew-pgp-sq-p) ;; stop adding brackets for sq
+	  (if (string-match "^[^<].*@" user) (setq user (concat "<" user ">"))))
 	(with-temp-buffer
 	  (mew-pgp-debug "mew-attach-pgp-public-key" (list (mew-pgp-get mew-prog-pgpk) (mew-pgp-get mew-prog-pgpk-ext-arg) user))
 	  (apply 'mew-call-process-lang
