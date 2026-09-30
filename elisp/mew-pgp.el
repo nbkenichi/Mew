@@ -74,8 +74,8 @@ Set 1 if 5. Set 2 if 6. Set 3 if GNUPG. Set 4 if GNUPG2.")
   '(("+batchmode=on" "+language=en")
     ("+batchmode=on" "+language=en" "+force=on")
     ("+batchmode=on" "+language=en")
-    ("--verify" "--batch" "--status-fd" "1")
-    ("--verify" "--batch" "--status-fd" "1")))
+    ("--verify" "--status-fd" "1")   ;; --batch removed to process all signatures
+    ("--verify" "--status-fd" "1"))) ;; cf. https://dev.gnupg.org/T7261.html
 
 (defconst mew-prog-old-pgpv-arg
   '(("+batchmode=on" "+language=en")
