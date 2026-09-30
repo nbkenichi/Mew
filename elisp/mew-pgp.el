@@ -468,6 +468,8 @@ Return nil when the output says nothing about a signature, which is
 what happens for a message which is encrypted but not signed."
   (let (args)
     (cond
+     ((setq args (mew-pgp-status-get "BADSIG"))
+      (concat "BAD PGP sign " (mew-pgp-status-uid args)))
      ((setq args (mew-pgp-status-get "GOODSIG"))
       (concat "Good PGP sign " (mew-pgp-status-uid args) (mew-pgp-status-trust)))
      ((setq args (mew-pgp-status-get "EXPKEYSIG"))
@@ -476,8 +478,6 @@ what happens for a message which is encrypted but not signed."
       (concat "Good PGP sign " (mew-pgp-status-uid args) " REVOKED"))
      ((setq args (mew-pgp-status-get "EXPSIG"))
       (concat "Good PGP sign " (mew-pgp-status-uid args) " EXPIRED"))
-     ((setq args (mew-pgp-status-get "BADSIG"))
-      (concat "BAD PGP sign " (mew-pgp-status-uid args)))
      ((setq args (mew-pgp-status-get "NO_PUBKEY"))
       (concat mew-pgp-result-pubkey ": ID = 0x" args))
      ((mew-pgp-status-get "ERRSIG")
