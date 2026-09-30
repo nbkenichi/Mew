@@ -482,6 +482,8 @@ what happens for a message which is encrypted but not signed."
       (concat mew-pgp-result-pubkey ": ID = 0x" args))
      ((mew-pgp-status-get "ERRSIG")
       mew-pgp-result-other)
+     ((mew-pgp-status-get "NODATA")
+      mew-pgp-result-other)
      (t nil))))
 
 (defun mew-pgp-verify-check ()
