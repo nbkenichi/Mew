@@ -403,23 +403,23 @@ pty, so they need nothing here."
 ;;;
 
 (defun mew-pgp-verify-check-text-sq ()
-  (let ((s (buffer-substring-no-properties (point-min) (point-max)))
+  (let ((strs (buffer-substring-no-properties (point-min) (point-max)))
 	(buf '())
-	ret)
-    (mew-pgp-debug "mew-pgp-verify-check-text-sq" s)
-    (if (string-match (mew-pgp-get mew-pgp-msg-no-validkey) s)
-	(push (mew-match-string 1 s) buf))
-    (if (string-match (mew-pgp-get mew-pgp-msg-no-vrfkey) s)
-	(push (replace-regexp-in-string "\n" "" (mew-match-string 1 s)) buf))
-    (if (string-match "^ *\\(.*Error verifying.*\\)$" s) ;; manipulated message
-	(push (concat "BAD PGP Sign:" (mew-match-string 1 s)) buf))
-    (if (string-match "^ *\\(.*Malformed packe.*\\)$" s) ;; broken signature
-	(push (concat "BAD PGP Sign:" (mew-match-string 1 s)) buf))
-    (if (string-match "^ *\\(.*[0-9]+ of [0-9]+.*\\)$" s) ;; success
-	(push (mew-match-string 1 s) buf))
+	s ret)
+    (mew-pgp-debug "mew-pgp-verify-check-text-sq" strs)
+    (dolist (s (mew-split strs ?\n))
+      (if (string-match (mew-pgp-get mew-pgp-msg-no-validkey) s)
+	  (push (mew-match-string 1 s) buf))
+      (if (string-match (mew-pgp-get mew-pgp-msg-no-vrfkey) s)
+	  (push (replace-regexp-in-string "\n" "" (mew-match-string 1 s)) buf))
+      (if (string-match "^ *\\(.*Error verifying.*\\)$" s) ;; manipulated message
+	  (push (concat "BAD PGP Sign:" (mew-match-string 1 s)) buf))
+      (if (string-match "^ *\\(.*Malformed packe.*\\)$" s) ;; broken signature
+	  (push (concat "BAD PGP Sign:" (mew-match-string 1 s)) buf))
+      (if (string-match "^ *\\(.*[0-9]+ of [0-9]+.*\\)$" s) ;; success
+	  (push (mew-match-string 1 s) buf)))
     (if buf
 	(setq ret (mew-join ";" (nreverse buf))))
-    (mew-pgp-debug "mew-pgp-verify-check-text-return" ret)
     ret))
 
 (defun mew-pgp-verify-check-text ()
