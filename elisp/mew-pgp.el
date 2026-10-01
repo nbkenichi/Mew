@@ -412,7 +412,9 @@ pty, so they need nothing here."
     (if (string-match (mew-pgp-get mew-pgp-msg-no-vrfkey) s)
 	(push (replace-regexp-in-string "\n" "" (mew-match-string 1 s)) buf))
     (if (string-match "^ *\\(.*Error verifying.*\\)$" s) ;; manipulated message
-	(push (concat "BAD PGP Sign:" (mew-match-string 1 s)) buf));; for highlight
+	(push (concat "BAD PGP Sign:" (mew-match-string 1 s)) buf))
+    (if (string-match "^ *\\(.*Malformed packe.*\\)$" s) ;; broken signature
+	(push (concat "BAD PGP Sign:" (mew-match-string 1 s)) buf))
     (if (string-match "^ *\\(.*[0-9]+ of [0-9]+.*\\)$" s) ;; success
 	(push (mew-match-string 1 s) buf))
     (if buf
