@@ -1416,7 +1416,9 @@ public keyring."
 	  ((eq mew-pgp-ver mew-pgp-verg)
 	   (insert "\"gpg --edit-key\" to change them.\n"))
 	  ((eq mew-pgp-ver mew-pgp-verg2)
-	   (insert "\"gpg --edit-key\" to change them.\n")))
+	   (insert "\"gpg --edit-key\" to change them.\n"))
+	  ((eq mew-pgp-ver mew-pgp-versq)
+	   (insert "\"sq pki link add\" to change them.\n")))
 	 (insert "If you do not know what TRUST and VALIDITY is,\n"
 		 "you should learn the web of trust system BEFORE\n"
 		 "using PGP to protect your privacy.\n"
