@@ -499,15 +499,16 @@ pty, so they need nothing here."
 
 (defun mew-pgp-get-status-ranges (regexp)
   "Search for headers matching REGEXP and return a list of (BEG END) ranges.
-Text before the first header is ignored.  If no header is found, return
-the whole buffer as a single range."
+Text before the first REGEXP is include in the first range.
+If no header is found, return the whole buffer as a single range."
   (let (pre-point ranges)
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward regexp nil t)
-	(if pre-point ;; skip the first match
-	    (push (list pre-point (match-beginning 0)) ranges))
-	(setq pre-point (match-beginning 0)))
+	(if (not pre-point) ;; 1st match
+	    (setq pre-point (point-min))
+	  (push (list pre-point (match-beginning 0)) ranges)
+	  (setq pre-point (match-beginning 0))))
       (if pre-point
 	  (push (list pre-point (point-max)) ranges) ;; last match
 	(push (list (point-min) (point-max)) ranges))) ;; no match
@@ -550,6 +551,7 @@ what happens for a message which is encrypted but not signed."
     (dolist (range ranges)
       (let ((beg (car range))
 	    (end (cadr range)))
+	(mew-pgp-debug "mew-pgp-verify-check-status1" (buffer-substring-no-properties beg end))
 	(push (cond
 	       ((setq args (mew-pgp-status-get "GOODSIG" beg end))
 		(concat "Good PGP sign " (mew-pgp-status-uid args) (mew-pgp-status-trust beg end)))
@@ -568,7 +570,8 @@ what happens for a message which is encrypted but not signed."
 	       ((mew-pgp-status-get "NODATA" beg end)
 		mew-pgp-result-other)
 	       (t nil))
-	      buf)))
+	      buf)
+	(mew-pgp-debug "mew-pgp-verify-check-result1" buf)))
     (setq str (mew-join ";\n\t" (nreverse buf)))
     (if (string-match-p "\\`[; \t\n]*\\'" str)
 	nil
