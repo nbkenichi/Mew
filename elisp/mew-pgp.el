@@ -524,6 +524,18 @@ Return nil if there is no such line."
 	(if (string= (mew-match-string 1) key)
 	    (throw 'found (or (mew-match-string 2) "")))))))
 
+(defun mew-pgp-status-get-list (key &optional beg end)
+  "Return the list of the arguments of the all KEY lines, \"\" if it has none.
+Return empty list if there is no such line."
+  (let (buf)
+    (save-excursion
+      (goto-char (or beg (point-min)))
+      (while (re-search-forward mew-pgp-status-regex end t)
+	(if (string= (mew-match-string 1) key)
+	    (push (or (mew-match-string 2) "") buf))))
+    (mew-pgp-debug "mew-pgp-status-get-list" buf)
+    (nreverse buf)))
+
 (defun mew-pgp-status-uid (args)
   "Take the user id out of ARGS of a GOODSIG or BADSIG line.
 The key id comes first, then the user id."
@@ -565,10 +577,10 @@ what happens for a message which is encrypted but not signed."
 		(concat "BAD PGP sign " (mew-pgp-status-uid args)))
 	       ((setq args (mew-pgp-status-get "NO_PUBKEY" beg end))
 		(concat mew-pgp-result-pubkey ": ID = 0x" args))
-	       ((setq args (mew-pgp-status-get "ERRSIG" beg end))
-		(concat mew-pgp-result-other ": ERRSIG " args))
-	       ((setq args (mew-pgp-status-get "NODATA" beg end))
-		(concat mew-pgp-result-other ": NODATA " args))
+	       ((setq args (mew-pgp-status-get-list "ERRSIG" beg end))
+		(concat mew-pgp-result-other ": ERRSIG " (mew-join "," args)))
+	       ((setq args (mew-pgp-status-get-list "NODATA" beg end))
+		(concat mew-pgp-result-other ": NODATA " (mew-join "," args)))
 	       (t nil))
 	      buf)
 	(mew-pgp-debug "mew-pgp-verify-check-result1" buf)))
