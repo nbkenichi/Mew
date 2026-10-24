@@ -405,7 +405,7 @@ pty, so they need nothing here."
 (defun mew-pgp-verify-check-text-sq ()
   (let ((strs (buffer-substring-no-properties (point-min) (point-max)))
 	(buf '())
-	s ret)
+	ret)
     (mew-pgp-debug "mew-pgp-verify-check-text-sq" strs)
     (dolist (s (mew-split strs ?\n))
       (if (string-match (mew-pgp-get mew-pgp-msg-no-validkey) s)
