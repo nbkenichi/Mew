@@ -1367,8 +1367,8 @@ exec_init(unsigned int num) { /* num == 0 */
 		int lim = MAX_ARGC - 2;
 		char *p;
 	
-		close(WRITE);
-		dup(pipes[WRITE]);
+		if (dup2(pipes[WRITE], WRITE) < 0)
+			warn_exit("can't redirect pipe.");
 		close(pipes[READ]);
 
 		Argvec[i++] = Exec_cmd;
@@ -1389,8 +1389,8 @@ exec_init(unsigned int num) { /* num == 0 */
 	}
 
 	/* I'm the parent. */
-	close(READ);
-	dup(pipes[READ]);
+	if (dup2(pipes[READ], READ) < 0)
+		warn_exit("can't redirect pipe.");
 	close(pipes[WRITE]);
 }
 #else  /* HAVE_FORK */
@@ -1637,13 +1637,14 @@ main(int argc, char **argv) {
 	else
 		func_print = print_for_scan;
 		
-	dup2(READ, SYNC);
+	if (dup2(READ, SYNC) < 0)
+		warn_exit("can't duplicate stdin.");
 	sync = fdopen(SYNC, FDREAD);
 	(*func_init)(lim);
 	while ((fp = (*func_getfile)(&filename, &foldername)) != NULL) {
 		if (nflag != 0) {
-			fstat(fileno(fp), &st);
-			if (!(st.st_mode & S_IFREG)) {
+			if (fstat(fileno(fp), &st) != 0 ||
+			    !(st.st_mode & S_IFREG)) {
 				fclose(fp);
 				continue;
 			}
