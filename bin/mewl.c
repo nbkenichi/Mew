@@ -159,6 +159,7 @@ private int  print_for_sort(FILE *, char *, char *);
 private int  print_for_pick(FILE *, char *, char *);
 private int  scan_numfile(char *, unsigned int, unsigned int, unsigned int *);
 private int  scan_intcompare(unsigned int *, unsigned int *);
+private unsigned int str_to_uint(const char *);
 private int  scan_folder(struct fld_rng *);
 private void scan_init(unsigned int);
 private FILE *scan_getfile(char **, char **);
@@ -1224,6 +1225,29 @@ scan_intcompare(unsigned int *i, unsigned int *j) {
 	return 0;
 }
 
+/*
+ * Detect errors when converting a string to a number.
+ * Return 0 for an empty/non-numeric string (as atoi did), but bail out
+ * on overflow or a negative value instead of silently wrapping.
+ */
+private unsigned int
+str_to_uint(const char *s) {
+	char *end;
+	unsigned long v;
+	const char *p = s;
+
+	while (isspace((unsigned char)*p)) p++;	/* as strtoul() skips */
+	if (*p == '-')
+		warn_exit("negative number: %s", s);
+	errno = 0;
+	v = strtoul(p, &end, 10);
+	if (end == p)
+		return 0;
+	if (errno == ERANGE || v > UINT_MAX)
+		warn_exit("number out of range: %s", s);
+	return (unsigned int)v;
+}
+
 private int
 scan_folder(struct fld_rng *fr) {
 	unsigned int num = 0, msgnum;
@@ -1461,14 +1485,14 @@ set_fld_rng(struct fld_rng *fr, char *arg1, char *arg2) {
 	else if (strncmp(range, "last:", 5) == 0) {
 		range += 5;
 		fr->first = fr->last = 0;
-		fr->num = atoi(range);
+		fr->num = str_to_uint(range);
 	} else if ((last = strchr(range, '-')) == NULL) {
-		fr->first = fr->last = atoi(range);
+		fr->first = fr->last = str_to_uint(range);
 		fr->num = 0;
 	} else {
 		*last++ = NUL;
-		fr->first = atoi(range);
-		fr->last = atoi(last);
+		fr->first = str_to_uint(range);
+		fr->last = str_to_uint(last);
 		fr->num = 0;
 	}
 
