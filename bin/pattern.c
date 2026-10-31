@@ -83,7 +83,9 @@ Pinit(char *p) {
 private int
 Getc() {
 	if (Ppos < Plim)
-		return Pvec[Ppos++];
+		/* Return the byte as 0..255 so that 0xFF cannot be
+		   mistaken for EOF (-1) on a signed-char platform. */
+		return (unsigned char)Pvec[Ppos++];
 	else 
 		return EOF;
 	/* Getc() is to be called even after Getc() returned EOF. */
