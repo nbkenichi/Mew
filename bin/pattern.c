@@ -336,15 +336,15 @@ exp_sq(struct pat *top) {
 				else {
 					p->prv->nxt = n;
 					n->prv = p->prv;
-					free(p);
 				}
+				free(p);
 				if (q->nxt == NULL)
 					;
 				else {
 					q->nxt->prv = n;
 					n->nxt = q->nxt;
-					free(q);
 				}
+				free(q);
 				q = n->nxt;
 				continue;
 			}
