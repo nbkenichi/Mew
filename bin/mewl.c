@@ -162,6 +162,7 @@ private int  scan_intcompare(const void *, const void *);
 private unsigned int str_to_uint(const char *);
 private int  scan_folder(struct fld_rng *);
 private void scan_init(unsigned int);
+private FILE *open_message(const char *);
 private FILE *scan_getfile(char **, char **);
 private void exec_init(unsigned int);
 private FILE *exec_getfile(char **, char **);
@@ -1301,6 +1302,30 @@ scan_init(unsigned int folders) {
 	MALLOC(Scan_ctx_buf, Scan_ctx_buf_size * sizeof(unsigned int));
 }
 
+/*
+ * Open a message file without blocking.  A FIFO or a device opened with
+ * the usual blocking semantics would hang open() until a writer (or the
+ * hardware) is ready; O_NONBLOCK makes open() return immediately.  Such
+ * non-regular files are filtered out afterwards by the fstat()/S_ISREG()
+ * check in main(), unless -n turns it off.  O_NONBLOCK has no effect on
+ * reads from regular files.
+ */
+private FILE *
+open_message(const char *name) {
+#if defined(HAVE_FCNTL_H) && defined(O_NONBLOCK)
+	int fd = open(name, O_RDONLY | O_NONBLOCK);
+	FILE *fp;
+
+	if (fd < 0)
+		return NULL;
+	if ((fp = fdopen(fd, FDREAD)) == NULL)
+		close(fd);
+	return fp;
+#else
+	return fopen(name, FDREAD);
+#endif
+}
+
 private FILE *
 scan_getfile(char **filename, char **foldername) {
 	static unsigned int i = 0, j = 0;
@@ -1320,8 +1345,8 @@ scan_getfile(char **filename, char **foldername) {
 	while (i < Scan_ctx_messages) {
 		snprintf(Buf_filenm, sizeof(Buf_filenm), "%u", *(Scan_ctx_buf + i));
 		snprintf(Buf_filenm2, sizeof(Buf_filenm2), "%u%s", *(Scan_ctx_buf + i), Suffix);
-		fp = fopen(Buf_filenm2, FDREAD);
-		if (fp == NULL) fp = fopen(Buf_filenm, FDREAD);
+		fp = open_message(Buf_filenm2);
+		if (fp == NULL) fp = open_message(Buf_filenm);
 		if (fp != NULL) {
 			i++;
 			*filename = Buf_filenm;
@@ -1329,8 +1354,8 @@ scan_getfile(char **filename, char **foldername) {
 		}
 		snprintf(Buf_filenm, sizeof(Buf_filenm), "0%u", *(Scan_ctx_buf + i));
 		snprintf(Buf_filenm2, sizeof(Buf_filenm2), "0%u%s", *(Scan_ctx_buf + i), Suffix);
-		fp = fopen(Buf_filenm2, FDREAD);
-		if (fp == NULL) fp = fopen(Buf_filenm, FDREAD);
+		fp = open_message(Buf_filenm2);
+		if (fp == NULL) fp = open_message(Buf_filenm);
 		if (fp != NULL) {
 			i++;
 			*filename = Buf_filenm;
@@ -1437,10 +1462,10 @@ exec_getfile(char **filename, char **foldername) {
 			r = p + strlen(p) - Suffix_len;
 		else
 			r = NULL;
-		fp = fopen(*filename, FDREAD);
+		fp = open_message(*filename);
 		if (r != NULL) *r = NUL; // remove suffix
 		if (fp != NULL) return fp;
-		fp = fopen(*filename, FDREAD); // try again without suffix
+		fp = open_message(*filename); // try again without suffix
 		if (fp != NULL) return fp;
 	}
 	return NULL;
