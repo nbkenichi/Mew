@@ -1239,7 +1239,7 @@ scan_folder(struct fld_rng *fr) {
 		if (scan_numfile(fname, first, last)) {
 			if (num == Scan_ctx_buf_size) {
 				Scan_ctx_buf_size += NUMBER_OF_FILE;
-				Scan_ctx_buf = (unsigned int *)realloc(Scan_ctx_buf, Scan_ctx_buf_size * sizeof(unsigned int));
+				REALLOC(Scan_ctx_buf, Scan_ctx_buf_size * sizeof(unsigned int));
 			}
 			*(Scan_ctx_buf + num) = atoi(fname);
 			num++;
