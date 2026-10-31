@@ -158,7 +158,7 @@ private int  print_for_scan(FILE *, char *, char *);
 private int  print_for_sort(FILE *, char *, char *);
 private int  print_for_pick(FILE *, char *, char *);
 private int  scan_numfile(char *, unsigned int, unsigned int, unsigned int *);
-private int  scan_intcompare(unsigned int *, unsigned int *);
+private int  scan_intcompare(const void *, const void *);
 private unsigned int str_to_uint(const char *);
 private int  scan_folder(struct fld_rng *);
 private void scan_init(unsigned int);
@@ -1217,10 +1217,12 @@ scan_numfile(char *s, unsigned int first, unsigned int last, unsigned int *out) 
 }
 
 private int
-scan_intcompare(unsigned int *i, unsigned int *j) {
-	if (*i > *j)
+scan_intcompare(const void *a, const void *b) {
+	unsigned int i = *(const unsigned int *)a;
+	unsigned int j = *(const unsigned int *)b;
+	if (i > j)
 		return 1;
-	if (*i < *j)
+	if (i < j)
 		return -1;
 	return 0;
 }
@@ -1276,8 +1278,7 @@ scan_folder(struct fld_rng *fr) {
 	}
 	closedir(dirp);
 
-	qsort(Scan_ctx_buf, num, sizeof(int),
-	      (int (*)(const void *, const void *)) scan_intcompare);
+	qsort(Scan_ctx_buf, num, sizeof(unsigned int), scan_intcompare);
 
 	if (fr->num > 0 && fr->num < num) {
 		for (i = 0; i < fr->num; i++)
@@ -1297,7 +1298,7 @@ scan_init(unsigned int folders) {
 	Scan_ctx_folders = folders;
 	Scan_ctx_messages = 0;
 	Scan_ctx_buf_size = NUMBER_OF_FILE;
-	MALLOC(Scan_ctx_buf, Scan_ctx_buf_size * sizeof(int));
+	MALLOC(Scan_ctx_buf, Scan_ctx_buf_size * sizeof(unsigned int));
 }
 
 private FILE *
