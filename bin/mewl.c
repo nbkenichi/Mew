@@ -21,6 +21,7 @@ private char version_message[] = "version 6.11 20260414 Mew developing team";
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/stat.h>
 #ifdef HAVE_ICONV
 # include <iconv.h>
@@ -156,7 +157,7 @@ private int  field_match(char *, char *, int);
 private int  print_for_scan(FILE *, char *, char *);
 private int  print_for_sort(FILE *, char *, char *);
 private int  print_for_pick(FILE *, char *, char *);
-private int  scan_numfile(char *, unsigned int, unsigned int);
+private int  scan_numfile(char *, unsigned int, unsigned int, unsigned int *);
 private int  scan_intcompare(unsigned int *, unsigned int *);
 private int  scan_folder(struct fld_rng *);
 private void scan_init(unsigned int);
@@ -1186,12 +1187,15 @@ private unsigned int Scan_ctx_buf_size;
 private unsigned int *Scan_ctx_buf;
 
 private int
-scan_numfile(char *s, unsigned int first, unsigned int last) {
-	int num = 0;
+scan_numfile(char *s, unsigned int first, unsigned int last, unsigned int *out) {
+	unsigned int num = 0, d;
 	unsigned char c;
 
 	while ((c = *s) != NUL && isdigit(c)) {
-		num = num * 10 + c - '0';
+		d = c - '0';
+		if (num > (UINT_MAX - d) / 10)
+			return FALSE; /* too large to be a message number */
+		num = num * 10 + d;
 		s++;
 	}
 
@@ -1204,10 +1208,11 @@ scan_numfile(char *s, unsigned int first, unsigned int last) {
 	else
 		return FALSE;
 
-	if (num >= first && (last == 0 || num <= last))
+	if (num >= first && (last == 0 || num <= last)) {
+		*out = num;
 		return TRUE;
-        else
-                return FALSE;
+	} else
+		return FALSE;
 }
 
 private int
@@ -1221,7 +1226,7 @@ scan_intcompare(unsigned int *i, unsigned int *j) {
 
 private int
 scan_folder(struct fld_rng *fr) {
-	unsigned int num = 0;
+	unsigned int num = 0, msgnum;
 	unsigned int first = fr->first, last = fr->last;
 	DIR *dirp;
 	struct dirent *dp;
@@ -1236,12 +1241,12 @@ scan_folder(struct fld_rng *fr) {
 	while ((dp = readdir(dirp)) != NULL) {
 		fname = dp->d_name;
 
-		if (scan_numfile(fname, first, last)) {
+		if (scan_numfile(fname, first, last, &msgnum)) {
 			if (num == Scan_ctx_buf_size) {
 				Scan_ctx_buf_size += NUMBER_OF_FILE;
 				REALLOC(Scan_ctx_buf, Scan_ctx_buf_size * sizeof(unsigned int));
 			}
-			*(Scan_ctx_buf + num) = atoi(fname);
+			*(Scan_ctx_buf + num) = msgnum;
 			num++;
 		}
 	}
