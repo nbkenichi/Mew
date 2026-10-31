@@ -119,8 +119,8 @@ private char *Input_file = NULL;
 private char *Suffix = NULL;
 
 private int All_fields = 0;
-private int Field_len = MAX_FIELD_LEN;
-private int Body_len = MAX_BODY_LEN;
+private unsigned int Field_len = MAX_FIELD_LEN;
+private unsigned int Body_len = MAX_BODY_LEN;
 private int PrintNumOfMsg = NO;
 private int Suffix_len = 0;
 
@@ -373,7 +373,7 @@ nextline(char *p, char *lim, int hdr_only) {
 
 private char *
 nextfield(char *p, char *lim, char **truncated_end, char **prev_beg, int hdr_only) {
-	int i = 0;
+	unsigned int i = 0;
 	char *q;
 	*truncated_end = NULL;
 
@@ -1534,7 +1534,7 @@ main(int argc, char **argv) {
 			STRDUP(Mail_home, Optarg);
 			break;
 		case 'c':
-			Body_len = atoi(Optarg);
+			Body_len = str_to_uint(Optarg);
 			break;
 		case 'd':
 			STRDUP(Key_field, Optarg);
@@ -1555,7 +1555,7 @@ main(int argc, char **argv) {
 			STRDUP(Input_file, Optarg);
 			break;
 		case 'l':
-			Field_len = atoi(Optarg);
+			Field_len = str_to_uint(Optarg);
 			break;
 		case 'm':
 			STRDUP(Exec_arg, Optarg);
