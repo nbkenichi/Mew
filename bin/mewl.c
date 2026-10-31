@@ -257,9 +257,10 @@ ch_home() {
 
 private void
 ch_mail_home(char *dir) {
-	char *p = dir + 1, c;
+	char *p, c;
 
-	if (dir == NULL) warn_exit("%s not exist.", dir);
+	if (dir == NULL) warn_exit("mail home directory is not set.");
+	p = dir + 1;
 	c = *dir;
 	switch (c) {
 	case '~':
