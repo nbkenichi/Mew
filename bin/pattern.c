@@ -105,6 +105,15 @@ Ungetc() {
 
 private char Keyval[BUFSIZ];
 
+/* Append c to Keyval at index i with a bounds check. Returns the next index. */
+private int
+keyval_put(int i, int c) {
+	if (i >= (int)sizeof(Keyval) - 1)
+		warn_exit("pattern string is too long.");
+	Keyval[i] = c;
+	return i + 1;
+}
+
 private int
 token(char **ret) {
 	int c;
@@ -143,7 +152,7 @@ token(char **ret) {
 			/* fall through */
 		default:
 			type = P_STR;
-			Keyval[i++] = c;
+			i = keyval_put(i, c);
 			break;
 		}
 		break;
@@ -155,12 +164,12 @@ token(char **ret) {
 			case '\\':
 				if ((c = Getc()) == EOF)
 					warn_exit("broken escape.");
-				Keyval[i++] = c;
+				i = keyval_put(i, c);
 				break;
 			case '"':
 				goto allocstr;
 			default:
-				Keyval[i++] = c;
+				i = keyval_put(i, c);
 				break;
 			}
 		}
@@ -218,7 +227,7 @@ token(char **ret) {
 				Ungetc();
 				break;
 			}
-			Keyval[i++] = c;
+			i = keyval_put(i, c);
 			continue;
 		}
 		break;
