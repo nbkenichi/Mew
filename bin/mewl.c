@@ -1394,6 +1394,8 @@ exec_init(unsigned int num) { /* num == 0 */
 	
 		if (dup2(pipes[WRITE], WRITE) < 0)
 			warn_exit("can't redirect pipe.");
+		if (pipes[WRITE] != WRITE)
+			close(pipes[WRITE]); /* reachable as fd 1 now */
 		close(pipes[READ]);
 
 		Argvec[i++] = Exec_cmd;
@@ -1416,6 +1418,8 @@ exec_init(unsigned int num) { /* num == 0 */
 	/* I'm the parent. */
 	if (dup2(pipes[READ], READ) < 0)
 		warn_exit("can't redirect pipe.");
+	if (pipes[READ] != READ)
+		close(pipes[READ]); /* reachable as fd 0 now */
 	close(pipes[WRITE]);
 }
 #else  /* HAVE_FORK */
@@ -1664,6 +1668,11 @@ main(int argc, char **argv) {
 		
 	if (dup2(READ, SYNC) < 0)
 		warn_exit("can't duplicate stdin.");
+#ifdef FD_CLOEXEC
+	/* Keep the sync descriptor from leaking into the -e child. */
+	if (fcntl(SYNC, F_SETFD, FD_CLOEXEC) < 0)
+		warn_exit("can't set close-on-exec.");
+#endif
 	sync = fdopen(SYNC, FDREAD);
 	(*func_init)(lim);
 	while ((fp = (*func_getfile)(&filename, &foldername)) != NULL) {
