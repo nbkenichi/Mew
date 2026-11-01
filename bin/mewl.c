@@ -1644,7 +1644,7 @@ main(int argc, char **argv) {
 	while ((fp = (*func_getfile)(&filename, &foldername)) != NULL) {
 		if (nflag != 0) {
 			if (fstat(fileno(fp), &st) != 0 ||
-			    !(st.st_mode & S_IFREG)) {
+			    !S_ISREG(st.st_mode)) {
 				fclose(fp);
 				continue;
 			}
