@@ -1262,7 +1262,7 @@ scan_folder(struct fld_rng *fr) {
 	}
 
 	if (PrintNumOfMsg == YES && num > 0 && Scan_ctx_folders == 1) {
-		printf("NumOfMsg: %d\n", num);
+		printf("NumOfMsg: %u\n", num);
 		fflush(stdout);
 	}
 	return num;
@@ -1293,8 +1293,8 @@ scan_getfile(char **filename, char **foldername) {
 	*foldername = Folders[j - 1].folder;
 					    
 	while (i < Scan_ctx_messages) {
-		snprintf(Buf_filenm, sizeof(Buf_filenm), "%d", *(Scan_ctx_buf + i));
-		snprintf(Buf_filenm2, sizeof(Buf_filenm2), "%d%s", *(Scan_ctx_buf + i), Suffix);
+		snprintf(Buf_filenm, sizeof(Buf_filenm), "%u", *(Scan_ctx_buf + i));
+		snprintf(Buf_filenm2, sizeof(Buf_filenm2), "%u%s", *(Scan_ctx_buf + i), Suffix);
 		fp = fopen(Buf_filenm2, FDREAD);
 		if (fp == NULL) fp = fopen(Buf_filenm, FDREAD);
 		if (fp != NULL) {
@@ -1302,8 +1302,8 @@ scan_getfile(char **filename, char **foldername) {
 			*filename = Buf_filenm;
 			return fp;
 		}
-		snprintf(Buf_filenm, sizeof(Buf_filenm), "0%d", *(Scan_ctx_buf + i));
-		snprintf(Buf_filenm2, sizeof(Buf_filenm2), "0%d%s", *(Scan_ctx_buf + i), Suffix);
+		snprintf(Buf_filenm, sizeof(Buf_filenm), "0%u", *(Scan_ctx_buf + i));
+		snprintf(Buf_filenm2, sizeof(Buf_filenm2), "0%u%s", *(Scan_ctx_buf + i), Suffix);
 		fp = fopen(Buf_filenm2, FDREAD);
 		if (fp == NULL) fp = fopen(Buf_filenm, FDREAD);
 		if (fp != NULL) {
