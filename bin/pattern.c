@@ -83,7 +83,9 @@ Pinit(char *p) {
 private int
 Getc() {
 	if (Ppos < Plim)
-		return Pvec[Ppos++];
+		/* Return the byte as 0..255 so that 0xFF cannot be
+		   mistaken for EOF (-1) on a signed-char platform. */
+		return (unsigned char)Pvec[Ppos++];
 	else 
 		return EOF;
 	/* Getc() is to be called even after Getc() returned EOF. */
@@ -104,6 +106,15 @@ Ungetc() {
  */
 
 private char Keyval[BUFSIZ];
+
+/* Append c to Keyval at index i with a bounds check. Returns the next index. */
+private int
+keyval_put(int i, int c) {
+	if (i >= (int)sizeof(Keyval) - 1)
+		warn_exit("pattern string is too long.");
+	Keyval[i] = c;
+	return i + 1;
+}
 
 private int
 token(char **ret) {
@@ -143,7 +154,7 @@ token(char **ret) {
 			/* fall through */
 		default:
 			type = P_STR;
-			Keyval[i++] = c;
+			i = keyval_put(i, c);
 			break;
 		}
 		break;
@@ -155,12 +166,12 @@ token(char **ret) {
 			case '\\':
 				if ((c = Getc()) == EOF)
 					warn_exit("broken escape.");
-				Keyval[i++] = c;
+				i = keyval_put(i, c);
 				break;
 			case '"':
 				goto allocstr;
 			default:
-				Keyval[i++] = c;
+				i = keyval_put(i, c);
 				break;
 			}
 		}
@@ -218,7 +229,7 @@ token(char **ret) {
 				Ungetc();
 				break;
 			}
-			Keyval[i++] = c;
+			i = keyval_put(i, c);
 			continue;
 		}
 		break;
@@ -325,15 +336,15 @@ exp_sq(struct pat *top) {
 				else {
 					p->prv->nxt = n;
 					n->prv = p->prv;
-					free(p);
 				}
+				free(p);
 				if (q->nxt == NULL)
 					;
 				else {
 					q->nxt->prv = n;
 					n->nxt = q->nxt;
-					free(q);
 				}
+				free(q);
 				q = n->nxt;
 				continue;
 			}

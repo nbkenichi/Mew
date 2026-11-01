@@ -21,6 +21,7 @@ private char version_message[] = "version 6.11 20260414 Mew developing team";
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/stat.h>
 #ifdef HAVE_ICONV
 # include <iconv.h>
@@ -118,8 +119,8 @@ private char *Input_file = NULL;
 private char *Suffix = NULL;
 
 private int All_fields = 0;
-private int Field_len = MAX_FIELD_LEN;
-private int Body_len = MAX_BODY_LEN;
+private unsigned int Field_len = MAX_FIELD_LEN;
+private unsigned int Body_len = MAX_BODY_LEN;
 private int PrintNumOfMsg = NO;
 private int Suffix_len = 0;
 
@@ -156,10 +157,12 @@ private int  field_match(char *, char *, int);
 private int  print_for_scan(FILE *, char *, char *);
 private int  print_for_sort(FILE *, char *, char *);
 private int  print_for_pick(FILE *, char *, char *);
-private int  scan_numfile(char *, unsigned int, unsigned int);
-private int  scan_intcompare(unsigned int *, unsigned int *);
+private int  scan_numfile(char *, unsigned int, unsigned int, unsigned int *);
+private int  scan_intcompare(const void *, const void *);
+private unsigned int str_to_uint(const char *);
 private int  scan_folder(struct fld_rng *);
 private void scan_init(unsigned int);
+private FILE *open_message(const char *);
 private FILE *scan_getfile(char **, char **);
 private void exec_init(unsigned int);
 private FILE *exec_getfile(char **, char **);
@@ -257,9 +260,10 @@ ch_home() {
 
 private void
 ch_mail_home(char *dir) {
-	char *p = dir + 1, c;
+	char *p, c;
 
-	if (dir == NULL) warn_exit("%s not exist.", dir);
+	if (dir == NULL) warn_exit("mail home directory is not set.");
+	p = dir + 1;
 	c = *dir;
 	switch (c) {
 	case '~':
@@ -370,7 +374,7 @@ nextline(char *p, char *lim, int hdr_only) {
 
 private char *
 nextfield(char *p, char *lim, char **truncated_end, char **prev_beg, int hdr_only) {
-	int i = 0;
+	unsigned int i = 0;
 	char *q;
 	*truncated_end = NULL;
 
@@ -1185,12 +1189,15 @@ private unsigned int Scan_ctx_buf_size;
 private unsigned int *Scan_ctx_buf;
 
 private int
-scan_numfile(char *s, unsigned int first, unsigned int last) {
-	int num = 0;
+scan_numfile(char *s, unsigned int first, unsigned int last, unsigned int *out) {
+	unsigned int num = 0, d;
 	unsigned char c;
 
 	while ((c = *s) != NUL && isdigit(c)) {
-		num = num * 10 + c - '0';
+		d = c - '0';
+		if (num > (UINT_MAX - d) / 10)
+			return FALSE; /* too large to be a message number */
+		num = num * 10 + d;
 		s++;
 	}
 
@@ -1203,24 +1210,50 @@ scan_numfile(char *s, unsigned int first, unsigned int last) {
 	else
 		return FALSE;
 
-	if (num >= first && (last == 0 || num <= last))
+	if (num >= first && (last == 0 || num <= last)) {
+		*out = num;
 		return TRUE;
-        else
-                return FALSE;
+	} else
+		return FALSE;
 }
 
 private int
-scan_intcompare(unsigned int *i, unsigned int *j) {
-	if (*i > *j)
+scan_intcompare(const void *a, const void *b) {
+	unsigned int i = *(const unsigned int *)a;
+	unsigned int j = *(const unsigned int *)b;
+	if (i > j)
 		return 1;
-	if (*i < *j)
+	if (i < j)
 		return -1;
 	return 0;
 }
 
+/*
+ * Detect errors when converting a string to a number.
+ * Return 0 for an empty/non-numeric string (as atoi did), but bail out
+ * on overflow or a negative value instead of silently wrapping.
+ */
+private unsigned int
+str_to_uint(const char *s) {
+	char *end;
+	unsigned long v;
+	const char *p = s;
+
+	while (isspace((unsigned char)*p)) p++;	/* as strtoul() skips */
+	if (*p == '-')
+		warn_exit("negative number: %s", s);
+	errno = 0;
+	v = strtoul(p, &end, 10);
+	if (end == p)
+		return 0;
+	if (errno == ERANGE || v > UINT_MAX)
+		warn_exit("number out of range: %s", s);
+	return (unsigned int)v;
+}
+
 private int
 scan_folder(struct fld_rng *fr) {
-	unsigned int num = 0;
+	unsigned int num = 0, msgnum;
 	unsigned int first = fr->first, last = fr->last;
 	DIR *dirp;
 	struct dirent *dp;
@@ -1235,19 +1268,18 @@ scan_folder(struct fld_rng *fr) {
 	while ((dp = readdir(dirp)) != NULL) {
 		fname = dp->d_name;
 
-		if (scan_numfile(fname, first, last)) {
+		if (scan_numfile(fname, first, last, &msgnum)) {
 			if (num == Scan_ctx_buf_size) {
 				Scan_ctx_buf_size += NUMBER_OF_FILE;
-				Scan_ctx_buf = (unsigned int *)realloc(Scan_ctx_buf, Scan_ctx_buf_size * sizeof(unsigned int));
+				REALLOC(Scan_ctx_buf, Scan_ctx_buf_size * sizeof(unsigned int));
 			}
-			*(Scan_ctx_buf + num) = atoi(fname);
+			*(Scan_ctx_buf + num) = msgnum;
 			num++;
 		}
 	}
 	closedir(dirp);
 
-	qsort(Scan_ctx_buf, num, sizeof(int),
-	      (int (*)(const void *, const void *)) scan_intcompare);
+	qsort(Scan_ctx_buf, num, sizeof(unsigned int), scan_intcompare);
 
 	if (fr->num > 0 && fr->num < num) {
 		for (i = 0; i < fr->num; i++)
@@ -1256,7 +1288,7 @@ scan_folder(struct fld_rng *fr) {
 	}
 
 	if (PrintNumOfMsg == YES && num > 0 && Scan_ctx_folders == 1) {
-		printf("NumOfMsg: %d\n", num);
+		printf("NumOfMsg: %u\n", num);
 		fflush(stdout);
 	}
 	return num;
@@ -1267,7 +1299,31 @@ scan_init(unsigned int folders) {
 	Scan_ctx_folders = folders;
 	Scan_ctx_messages = 0;
 	Scan_ctx_buf_size = NUMBER_OF_FILE;
-	MALLOC(Scan_ctx_buf, Scan_ctx_buf_size * sizeof(int));
+	MALLOC(Scan_ctx_buf, Scan_ctx_buf_size * sizeof(unsigned int));
+}
+
+/*
+ * Open a message file without blocking.  A FIFO or a device opened with
+ * the usual blocking semantics would hang open() until a writer (or the
+ * hardware) is ready; O_NONBLOCK makes open() return immediately.  Such
+ * non-regular files are filtered out afterwards by the fstat()/S_ISREG()
+ * check in main(), unless -n turns it off.  O_NONBLOCK has no effect on
+ * reads from regular files.
+ */
+private FILE *
+open_message(const char *name) {
+#if defined(HAVE_FCNTL_H) && defined(O_NONBLOCK)
+	int fd = open(name, O_RDONLY | O_NONBLOCK);
+	FILE *fp;
+
+	if (fd < 0)
+		return NULL;
+	if ((fp = fdopen(fd, FDREAD)) == NULL)
+		close(fd);
+	return fp;
+#else
+	return fopen(name, FDREAD);
+#endif
 }
 
 private FILE *
@@ -1287,19 +1343,19 @@ scan_getfile(char **filename, char **foldername) {
 	*foldername = Folders[j - 1].folder;
 					    
 	while (i < Scan_ctx_messages) {
-		snprintf(Buf_filenm, sizeof(Buf_filenm), "%d", *(Scan_ctx_buf + i));
-		snprintf(Buf_filenm2, sizeof(Buf_filenm2), "%d%s", *(Scan_ctx_buf + i), Suffix);
-		fp = fopen(Buf_filenm2, FDREAD);
-		if (fp == NULL) fp = fopen(Buf_filenm, FDREAD);
+		snprintf(Buf_filenm, sizeof(Buf_filenm), "%u", *(Scan_ctx_buf + i));
+		snprintf(Buf_filenm2, sizeof(Buf_filenm2), "%u%s", *(Scan_ctx_buf + i), Suffix);
+		fp = open_message(Buf_filenm2);
+		if (fp == NULL) fp = open_message(Buf_filenm);
 		if (fp != NULL) {
 			i++;
 			*filename = Buf_filenm;
 			return fp;
 		}
-		snprintf(Buf_filenm, sizeof(Buf_filenm), "0%d", *(Scan_ctx_buf + i));
-		snprintf(Buf_filenm2, sizeof(Buf_filenm2), "0%d%s", *(Scan_ctx_buf + i), Suffix);
-		fp = fopen(Buf_filenm2, FDREAD);
-		if (fp == NULL) fp = fopen(Buf_filenm, FDREAD);
+		snprintf(Buf_filenm, sizeof(Buf_filenm), "0%u", *(Scan_ctx_buf + i));
+		snprintf(Buf_filenm2, sizeof(Buf_filenm2), "0%u%s", *(Scan_ctx_buf + i), Suffix);
+		fp = open_message(Buf_filenm2);
+		if (fp == NULL) fp = open_message(Buf_filenm);
 		if (fp != NULL) {
 			i++;
 			*filename = Buf_filenm;
@@ -1336,8 +1392,10 @@ exec_init(unsigned int num) { /* num == 0 */
 		int lim = MAX_ARGC - 2;
 		char *p;
 	
-		close(WRITE);
-		dup(pipes[WRITE]);
+		if (dup2(pipes[WRITE], WRITE) < 0)
+			warn_exit("can't redirect pipe.");
+		if (pipes[WRITE] != WRITE)
+			close(pipes[WRITE]); /* reachable as fd 1 now */
 		close(pipes[READ]);
 
 		Argvec[i++] = Exec_cmd;
@@ -1358,8 +1416,10 @@ exec_init(unsigned int num) { /* num == 0 */
 	}
 
 	/* I'm the parent. */
-	close(READ);
-	dup(pipes[READ]);
+	if (dup2(pipes[READ], READ) < 0)
+		warn_exit("can't redirect pipe.");
+	if (pipes[READ] != READ)
+		close(pipes[READ]); /* reachable as fd 0 now */
 	close(pipes[WRITE]);
 }
 #else  /* HAVE_FORK */
@@ -1406,10 +1466,10 @@ exec_getfile(char **filename, char **foldername) {
 			r = p + strlen(p) - Suffix_len;
 		else
 			r = NULL;
-		fp = fopen(*filename, FDREAD);
+		fp = open_message(*filename);
 		if (r != NULL) *r = NUL; // remove suffix
 		if (fp != NULL) return fp;
-		fp = fopen(*filename, FDREAD); // try again without suffix
+		fp = open_message(*filename); // try again without suffix
 		if (fp != NULL) return fp;
 	}
 	return NULL;
@@ -1455,14 +1515,14 @@ set_fld_rng(struct fld_rng *fr, char *arg1, char *arg2) {
 	else if (strncmp(range, "last:", 5) == 0) {
 		range += 5;
 		fr->first = fr->last = 0;
-		fr->num = atoi(range);
+		fr->num = str_to_uint(range);
 	} else if ((last = strchr(range, '-')) == NULL) {
-		fr->first = fr->last = atoi(range);
+		fr->first = fr->last = str_to_uint(range);
 		fr->num = 0;
 	} else {
 		*last++ = NUL;
-		fr->first = atoi(range);
-		fr->last = atoi(last);
+		fr->first = str_to_uint(range);
+		fr->last = str_to_uint(last);
 		fr->num = 0;
 	}
 
@@ -1504,7 +1564,7 @@ main(int argc, char **argv) {
 			STRDUP(Mail_home, Optarg);
 			break;
 		case 'c':
-			Body_len = atoi(Optarg);
+			Body_len = str_to_uint(Optarg);
 			break;
 		case 'd':
 			STRDUP(Key_field, Optarg);
@@ -1525,7 +1585,7 @@ main(int argc, char **argv) {
 			STRDUP(Input_file, Optarg);
 			break;
 		case 'l':
-			Field_len = atoi(Optarg);
+			Field_len = str_to_uint(Optarg);
 			break;
 		case 'm':
 			STRDUP(Exec_arg, Optarg);
@@ -1606,13 +1666,19 @@ main(int argc, char **argv) {
 	else
 		func_print = print_for_scan;
 		
-	dup2(READ, SYNC);
+	if (dup2(READ, SYNC) < 0)
+		warn_exit("can't duplicate stdin.");
+#ifdef FD_CLOEXEC
+	/* Keep the sync descriptor from leaking into the -e child. */
+	if (fcntl(SYNC, F_SETFD, FD_CLOEXEC) < 0)
+		warn_exit("can't set close-on-exec.");
+#endif
 	sync = fdopen(SYNC, FDREAD);
 	(*func_init)(lim);
 	while ((fp = (*func_getfile)(&filename, &foldername)) != NULL) {
 		if (nflag != 0) {
-			fstat(fileno(fp), &st);
-			if (!(st.st_mode & S_IFREG)) {
+			if (fstat(fileno(fp), &st) != 0 ||
+			    !S_ISREG(st.st_mode)) {
 				fclose(fp);
 				continue;
 			}
